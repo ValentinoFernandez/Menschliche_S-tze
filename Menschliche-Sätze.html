@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Menschliche Sätze</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c2a48; --ink-soft:#56607a; --paper:#f3f5f9; --surface:#ffffff; --line:#d7dce6;
+  --verb:#c8372d; --part:#b97f00; --conj:#1f7a8c; --bad:#c8372d; --bad-bg:#fbeceb;
+  --btn:#1c2a48; --btn-text:#ffffff; --radius:10px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e8ecf5; --ink-soft:#a3abc0; --paper:#121826; --surface:#1c2436; --line:#33405a;
+    --verb:#ff7a6e; --part:#f2c14e; --conj:#5cc3d6; --bad:#ff7a6e; --bad-bg:#3a2226;
+    --btn:#e8ecf5; --btn-text:#121826; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e8ecf5; --ink-soft:#a3abc0; --paper:#121826; --surface:#1c2436; --line:#33405a;
+  --verb:#ff7a6e; --part:#f2c14e; --conj:#5cc3d6; --bad:#ff7a6e; --bad-bg:#3a2226;
+  --btn:#e8ecf5; --btn-text:#121826; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper); color:var(--ink); font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif; font-size:17px; line-height:1.45; -webkit-tap-highlight-color:transparent}
+.app{max-width:620px; margin:0 auto; padding:18px 16px 48px; min-height:100vh}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible, input:focus-visible, textarea:focus-visible{outline:3px solid var(--conj); outline-offset:2px}
+.hidden{display:none !important}
+h1,h2,h3{margin:0; line-height:1.15}
+p{margin:0}
+.muted{color:var(--ink-soft)}
+.small{font-size:14px}
+
+/* Home */
+.hero{padding:26px 0 22px}
+.title-cards{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px}
+.tcard{font-size:clamp(28px,8vw,42px); font-weight:700; padding:6px 14px 8px; background:var(--surface); border:2px solid var(--ink); border-radius:var(--radius); box-shadow:0 3px 0 var(--ink)}
+.tcard.v{border-color:var(--verb); color:var(--verb); box-shadow:0 3px 0 var(--verb)}
+.hero p{color:var(--ink-soft); max-width:42ch}
+.roles{display:grid; gap:10px; margin-top:8px}
+.role{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 16px; text-align:left; display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center}
+.role .ico{font-size:30px}
+.role h3{font-size:19px}
+.role small{color:var(--ink-soft); font-size:15px}
+.role.primary{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.role.primary small{color:inherit; opacity:.75}
+
+/* Common */
+.topbar{display:flex; align-items:center; gap:10px; margin-bottom:12px; min-height:34px}
+.back{border:none; background:none; font-size:15px; padding:6px 0; color:var(--ink-soft)}
+.topbar .right{margin-left:auto}
+.gtitle{font-size:24px; margin-bottom:4px}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-top:12px}
+.field-label{font-weight:700; font-size:16px; display:block}
+.field-hint{font-size:14px; color:var(--ink-soft)}
+.stepper{display:flex; align-items:center; gap:10px; margin-top:8px}
+.stepper button{width:46px; height:46px; border-radius:50%; border:2px solid var(--ink); background:transparent; font-size:22px; font-weight:700; line-height:1}
+.stepper output{min-width:56px; text-align:center; font-size:28px; font-weight:700; font-variant-numeric:tabular-nums}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.chip{border:2px solid var(--line); background:var(--surface); border-radius:999px; padding:7px 13px; font-size:15px; font-weight:700}
+.chip[aria-pressed="true"]{border-color:var(--ink); background:var(--ink); color:var(--paper)}
+.switchrow{display:flex; align-items:center; gap:12px}
+.switch{position:relative; flex:none; width:46px; height:28px; border-radius:14px; border:2px solid var(--ink-soft); background:transparent; padding:0}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--ink-soft); transition:left .2s}
+.switch[aria-checked="true"]{background:#2f8f5b; border-color:#2f8f5b}
+.switch[aria-checked="true"]::after{left:21px; background:#fff}
+textarea, input[type=text], input[type=number]{width:100%; font:inherit; font-size:16px; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:10px; margin-top:8px}
+textarea{min-height:150px; resize:vertical}
+.err{color:var(--bad); background:var(--bad-bg); border-radius:8px; padding:8px 10px; font-size:15px; margin-top:10px}
+.err:empty{display:none}
+.actions{display:flex; gap:10px; margin-top:14px}
+.btn{flex:1; border-radius:var(--radius); padding:13px 14px; font-weight:700; font-size:17px; border:2px solid var(--btn); background:var(--btn); color:var(--btn-text)}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+.btn:disabled{opacity:.4; cursor:default}
+code{font-family:inherit; font-weight:700; background:var(--paper); padding:1px 5px; border-radius:4px}
+.syntax{margin:6px 0 0; padding-left:18px; font-size:15px; color:var(--ink-soft)}
+.v1{color:var(--verb)} .v2{color:var(--part)} .cj{color:var(--conj)}
+
+/* Teacher session */
+.codecard{background:var(--ink); color:var(--paper); border-radius:14px; padding:18px 16px; text-align:center}
+.codecard .lbl{font-size:15px; opacity:.8}
+.bigcode{font-size:clamp(34px,11vw,56px); font-weight:700; letter-spacing:.08em; margin:4px 0; font-variant-numeric:tabular-nums; word-break:break-all}
+.bigcode.long{font-size:15px; letter-spacing:0; max-height:110px; overflow:auto; text-align:left; font-weight:400; user-select:all; background:rgba(255,255,255,.08); padding:8px; border-radius:8px}
+.codecard .copy{margin-top:8px; background:transparent; color:var(--paper); border:1px solid currentColor; border-radius:8px; padding:6px 12px; font-size:14px}
+.roundbar{display:flex; align-items:center; justify-content:center; gap:14px; margin:16px 0 4px}
+.roundbar button{width:50px; height:50px; border-radius:50%; border:2px solid var(--ink); background:var(--surface); font-size:24px; font-weight:700}
+.roundbar button:disabled{opacity:.3}
+.roundbar .rnum{font-size:26px; font-weight:700; min-width:130px; text-align:center}
+.groups{display:grid; gap:10px; margin-top:12px}
+.group{background:var(--surface); border:1px solid var(--line); border-left:8px solid var(--gc); border-radius:var(--radius); padding:12px 14px}
+.group-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.group-head h3{font-size:18px}
+.group-head .count{color:var(--ink-soft); font-size:14px}
+.group-head .toggle{margin-left:auto; border:1px solid var(--line); background:transparent; border-radius:8px; padding:6px 10px; font-size:14px; font-weight:700}
+.members{font-size:15px; color:var(--ink-soft); margin-top:4px}
+.solution{display:flex; flex-wrap:wrap; gap:10px 6px; margin-top:10px}
+.sw{display:flex; flex-direction:column; align-items:center; border:1px solid var(--line); border-radius:8px; padding:6px 9px; font-weight:700; font-size:18px}
+.sw .who{font-size:12px; color:var(--ink-soft); font-weight:700}
+.sw.punct{border:none; padding:6px 2px; font-size:22px}
+.legend{display:flex; gap:12px; flex-wrap:wrap; font-size:14px; color:var(--ink-soft); margin-top:10px}
+.legend span::before{content:""; display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+.legend .l1::before{background:var(--verb)} .legend .l2::before{background:var(--part)} .legend .l3::before{background:var(--conj)}
+
+/* Student card */
+.wordcard{
+  margin-top:8px; background:var(--surface); border:10px solid var(--gc); border-radius:22px;
+  min-height:62vh; display:flex; flex-direction:column; padding:16px 14px 18px;
+}
+.wordcard .ghead{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:18px}
+.wordcard .gname{display:flex; align-items:center; gap:8px}
+.wordcard .gname i{display:inline-block; width:18px; height:18px; border-radius:50%; background:var(--gc)}
+.wordcard .word{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700; line-height:1.05; padding:10px 0; word-break:break-word; overflow-wrap:anywhere}
+.wordcard .foot{text-align:center; color:var(--ink-soft); font-size:15px}
+.wordcard .role-tag{display:inline-block; font-size:14px; font-weight:700; border:2px solid currentColor; border-radius:999px; padding:2px 10px; margin-bottom:6px}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.94); opacity:.3}100%{transform:scale(1); opacity:1}}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+</head>
+<body>
+<main class="app">
+
+<!-- HOME -->
+<section id="home">
+  <div class="hero">
+    <div class="title-cards" aria-hidden="true"><span class="tcard">Menschliche</span><span class="tcard v">Sätze</span></div>
+    <h1 class="hidden">Menschliche Sätze</h1>
+    <p>Jede Person bekommt ein Wort auf dem Handy. Zusammen bildet die Gruppe einen richtigen Satz.</p>
+  </div>
+  <div class="roles">
+    <button class="role primary" id="goStudent"><span class="ico" aria-hidden="true">🙋</span><span><h3>Ich bin Lernende:r</h3><small>Code und Nummer eingeben, Wort bekommen</small></span></button>
+    <button class="role" id="goTeacher"><span class="ico" aria-hidden="true">🧑‍🏫</span><span><h3>Ich bin Lehrperson</h3><small>Sitzung starten und Lösungen sehen</small></span></button>
+  </div>
+</section>
+
+<!-- TEACHER SETUP -->
+<section id="tSetup" class="hidden">
+  <div class="topbar"><button class="back" data-home>‹ Start</button></div>
+  <h2 class="gtitle">Neue Sitzung</h2>
+  <p class="muted">Zähle die Lernenden ab: 1, 2, 3 … Jede Person merkt sich ihre Nummer.</p>
+
+  <div class="panel">
+    <span class="field-label">Wie viele Lernende?</span>
+    <div class="stepper"><button id="nMinus" aria-label="Weniger">−</button><output id="nOut">10</output><button id="nPlus" aria-label="Mehr">+</button></div>
+  </div>
+
+  <div class="panel">
+    <span class="field-label">Wie viele Gruppen?</span>
+    <span class="field-hint">Eine Gruppe = ein Satz. Gut sind 5 bis 8 Personen pro Gruppe.</span>
+    <div class="stepper"><button id="kMinus" aria-label="Weniger Gruppen">−</button><output id="kOut">2</output><button id="kPlus" aria-label="Mehr Gruppen">+</button></div>
+    <p class="small muted" id="sizesOut" style="margin-top:6px"></p>
+  </div>
+
+  <div class="panel">
+    <span class="field-label">Grammatik</span>
+    <div class="chips" id="levelChips"></div>
+    <div id="topicBox" style="margin-top:14px">
+      <span class="field-label">Wortschatz</span>
+      <div class="chips" id="topicChips"></div>
+    </div>
+    <p class="small muted" id="poolCount" style="margin-top:10px"></p>
+    <div id="customBox" class="hidden" style="margin-top:12px">
+      <p class="small muted">Ein Satz pro Zeile. <code>/</code> trennt feste Teile. Wörter mit Leerzeichen können auf mehrere Personen verteilt werden.</p>
+      <ul class="syntax">
+        <li><code>*</code> nach dem Verb: <span class="v1"><b>Verb</b></span></li>
+        <li><code>**</code> nach dem Verbteil am Ende: <span class="v2"><b>Verbteil</b></span></li>
+        <li><code>~</code> nach <i>weil, dass …</i>: <span class="cj"><b>Konjunktion</b></span></li>
+        <li>Am Ende <code>.</code> <code>?</code> oder <code>!</code> — das erste Wort klein schreiben (außer Nomen).</li>
+      </ul>
+      <textarea id="customText" spellcheck="false">morgen / gehe* / ich / mit meiner Familie / ins Kino .
+der Gast / checkt* / morgen / um 11 Uhr / aus** .
+ich / möchte* / ein Zimmer / für zwei Nächte / reservieren** .
+ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte* .</textarea>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="switchrow">
+      <button class="switch" id="hintSwitch" role="switch" aria-checked="true" aria-label="Hilfen"></button>
+      <span><b>Hilfen zeigen</b><br><span class="small muted">Verben in Farbe und das Satzzeichen am Ende</span></span>
+    </div>
+  </div>
+
+  <div class="err" id="setupErr"></div>
+  <div class="actions"><button class="btn" id="startSession">Sitzung starten</button></div>
+</section>
+
+<!-- TEACHER SESSION -->
+<section id="tSession" class="hidden">
+  <div class="topbar">
+    <button class="back" id="endSession">‹ Neue Sitzung</button>
+    <span class="right small muted" id="sessInfo"></span>
+  </div>
+  <div class="codecard">
+    <div class="lbl">Code für die Klasse</div>
+    <div class="bigcode" id="codeShow"></div>
+    <div class="lbl" id="codeHint"></div>
+    <button class="copy" id="copyCode">Code kopieren</button>
+  </div>
+  <div class="roundbar">
+    <button id="tPrev" aria-label="Vorherige Runde">‹</button>
+    <span class="rnum" id="tRound">Runde 1</span>
+    <button id="tNext" aria-label="Nächste Runde">›</button>
+  </div>
+  <p class="small muted" style="text-align:center">Neue Runde = neue Gruppen und neue Sätze. Sag der Klasse die Rundennummer.</p>
+  <div class="actions"><button class="btn ghost" id="toggleAll">Alle Lösungen zeigen</button></div>
+  <div class="groups" id="groups"></div>
+  <div class="legend"><span class="l1">Verb</span><span class="l2">Verbteil am Ende</span><span class="l3">weil / dass</span></div>
+</section>
+
+<!-- STUDENT JOIN -->
+<section id="sJoin" class="hidden">
+  <div class="topbar"><button class="back" data-home>‹ Start</button></div>
+  <h2 class="gtitle">Mitspielen</h2>
+  <div class="panel">
+    <label class="field-label" for="joinCode">Code</label>
+    <span class="field-hint">Steht auf dem Bildschirm der Lehrperson.</span>
+    <input type="text" id="joinCode" placeholder="z. B. K7P2-XQ9A" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  </div>
+  <div class="panel">
+    <label class="field-label" for="joinNum">Deine Nummer</label>
+    <input type="number" id="joinNum" inputmode="numeric" min="1" max="60" placeholder="z. B. 7">
+  </div>
+  <div class="err" id="joinErr"></div>
+  <div class="actions"><button class="btn" id="joinBtn">Mein Wort zeigen</button></div>
+</section>
+
+<!-- STUDENT CARD -->
+<section id="sCard" class="hidden">
+  <div class="topbar">
+    <button class="back" id="leaveBtn">‹ Verlassen</button>
+    <span class="right small muted" id="cardNum"></span>
+  </div>
+  <div class="wordcard" id="wordcard">
+    <div class="ghead"><span class="gname"><i></i><span id="gName"></span></span><span id="gSize" class="small muted"></span></div>
+    <div class="word" id="wordText"></div>
+    <div class="foot" id="cardFoot"></div>
+  </div>
+  <div class="roundbar">
+    <button id="sPrev" aria-label="Vorherige Runde">‹</button>
+    <span class="rnum" id="sRound">Runde 1</span>
+    <button id="sNext" aria-label="Nächste Runde">›</button>
+  </div>
+  <p class="small muted" style="text-align:center">Wechsle die Runde nur, wenn die Lehrperson es sagt.</p>
+</section>
+
+</main>
+<script>
+(function(){
+"use strict";
+
+/* ================= Sentence bank ================= */
+// Themen: H = Hotel, R = Reisen, S = Stadt & Freizeit, A = Alltag
+const LEVELS = [
+ {title:"Aussagesätze", items:[
+  ["ich / wohne* / in Sucre",".","A"],
+  ["das Hotel / hat* / 40 Zimmer",".","H"],
+  ["morgen / gehe* / ich / ins Kino",".","S"],
+  ["die Rezeption / ist* / 24 Stunden / geöffnet",".","H"],
+  ["der Flug nach Madrid / dauert* / zehn Stunden",".","R"],
+  ["im Sommer / reisen* / viele Touristen / nach Deutschland",".","R"],
+  ["heute / trinkt* / Anna / einen Kaffee / im Café",".","A"],
+  ["meine Schwester / arbeitet* / seit zwei Jahren / in einer Bank",".","A"],
+  ["jeden Morgen / frühstücken* / die Gäste / im Restaurant / vom Hotel",".","H"],
+  ["wir / fahren* / morgen früh / mit dem Bus / nach Potosí",".","R"],
+  ["am Wochenende / besuchen* / wir / mit unseren Freunden / das Museum / in Sucre",".","S"]
+ ]},
+ {title:"Fragen", items:[
+  ["wo / wohnst* / du","?","A"],
+  ["sprechen* / Sie / Englisch","?","R"],
+  ["gehst* / du / morgen / ins Kino","?","S"],
+  ["was / machst* / du / am Wochenende","?","A"],
+  ["um wie viel Uhr / gibt* / es / Frühstück","?","H"],
+  ["wie lange / dauert* / die Fahrt / nach Uyuni","?","R"],
+  ["wann / fährt* / der nächste Bus / nach La Paz","?","R"],
+  ["was / kostet* / ein Doppelzimmer / für zwei Nächte","?","H"],
+  ["wann / beginnt* / die Führung / durch die Altstadt","?","S"],
+  ["haben* / Sie / heute / noch / ein freies Zimmer","?","H"],
+  ["wie viele Touristen / besuchen* / jedes Jahr / die Stadt / Sucre","?","S"]
+ ]},
+ {title:"Trennbare Verben", items:[
+  ["stehst* / du / früh / auf**","?","A"],
+  ["die Führung / fängt* / um 10 Uhr / an**",".","S"],
+  ["der Bus / fährt* / um 9 Uhr / ab**",".","R"],
+  ["ich / rufe* / dich / morgen / an**",".","A"],
+  ["bitte / steigen* / Sie / hier / aus**","!","R"],
+  ["wir / sehen* / heute Abend / einen Film / an**",".","S"],
+  ["wir / kaufen* / am Samstag / im Supermarkt / ein**",".","A"],
+  ["die Gäste / checken* / morgen / um 12 Uhr / aus**",".","H"],
+  ["der Gast / füllt* / das Formular / an der Rezeption / aus**",".","H"],
+  ["der Zug / kommt* / heute Abend / um 8 Uhr / in Berlin / an**",".","R"]
+ ]},
+ {title:"Modalverben", items:[
+  ["kannst* / du / Deutsch / sprechen**","?","A"],
+  ["ich / will* / ein Zimmer / reservieren**",".","H"],
+  ["hier / darf* / man / nicht / rauchen**",".","S"],
+  ["kann* / ich / hier / ein Ticket / kaufen**","?","R"],
+  ["ich / muss* / heute / meine Hausaufgaben / machen**",".","A"],
+  ["wir / müssen* / den Zug / um 7 Uhr / nehmen**",".","R"],
+  ["möchten* / Sie / ein Zimmer / mit Frühstück / buchen**","?","H"],
+  ["die Touristen / wollen* / am Nachmittag / die Kathedrale / besuchen**",".","S"],
+  ["ich / möchte* / morgen / mit dir / ins Kino / gehen**",".","S"],
+  ["wir / müssen* / heute / bis 10 Uhr / im Hotel / arbeiten**",".","H"]
+ ]},
+ {title:"Perfekt", items:[
+  ["ich / habe* / lange / geschlafen**",".","A"],
+  ["wir / sind* / nach Berlin / gefahren**",".","R"],
+  ["hast* / du / das Museum / besucht**","?","S"],
+  ["Maria / hat* / gestern / ein Zimmer / gebucht**",".","H"],
+  ["was / hast* / du / am Wochenende / gemacht**","?","A"],
+  ["wir / haben* / am Samstag / den Markt / besucht**",".","S"],
+  ["die Gäste / haben* / das Zimmer / nicht / bezahlt**",".","H"],
+  ["ich / habe* / gestern Abend / im Restaurant / Pizza / gegessen**",".","S"],
+  ["der Gast / ist* / am Montag / mit dem Bus / in Sucre / angekommen**",".","R"],
+  ["letztes Jahr / sind* / wir / mit dem Flugzeug / nach Europa / geflogen**",".","R"]
+ ]},
+ {title:"weil / dass", items:[
+  ["ich / hoffe*, / dass~ / er / kommt*",".","A"],
+  ["sie / sagt*, / dass~ / es / regnet*",".","A"],
+  ["er / sagt*, / dass~ / der Bus / später / kommt*",".","R"],
+  ["ich / finde*, / dass~ / Sucre / sehr schön / ist*",".","S"],
+  ["wir / gehen* / ins Museum, / weil~ / es / regnet*",".","S"],
+  ["ich / denke*, / dass~ / wir / ein Zimmer / brauchen*",".","H"],
+  ["ich / glaube*, / dass~ / das Hotel / sehr gut / ist*",".","H"],
+  ["ich / weiß*, / dass~ / du / gestern / angekommen** / bist*",".","R"],
+  ["ich / bleibe* / zu Hause, / weil~ / ich / krank / bin*",".","A"],
+  ["der Gast / ist* / froh, / weil~ / das Zimmer / sauber / ist*",".","H"],
+  ["wir / fahren* / nach Uyuni, / weil~ / die Landschaft / wunderschön / ist*",".","R"],
+  ["ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte*",".","A"]
+ ]}
+];
+const MIX = 6, CUSTOM = 7;
+const LEVEL_NAMES = LEVELS.map(function(l){ return l.title; }).concat(["Alle Strukturen","Eigene Sätze"]);
+const TOPICS = [["","Alle Themen"],["H","Hotel"],["R","Reisen"],["S","Stadt & Freizeit"],["A","Alltag"]];
+
+const GROUPS = [
+ ["Rot","#d64541"],["Blau","#2d6cdf"],["Grün","#2f9e5b"],["Gelb","#e0a800"],["Lila","#8a4fd1"],
+ ["Orange","#e5741a"],["Türkis","#1a9aa6"],["Rosa","#d94f94"],["Braun","#8b5e3c"],["Grau","#6b7280"],
+ ["Oliv","#7a8b2a"],["Himmelblau","#4aa3df"],["Mint","#3cb89a"],["Weinrot","#8e2440"],["Marine","#3a4f8f"]
+];
+const N_MIN = 3, N_MAX = 60, K_MAX = 15;
+
+/* ================= Helpers ================= */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+const store = {
+  get(k, d){ try { const v = localStorage.getItem("msv2-"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem("msv2-"+k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem("msv2-"+k); } catch(e){} }
+};
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function rngFor(seed, r){ return mulberry32(((seed * 2654435761) % 4294967296 + r * 40503 + 977) >>> 0); }
+function shuffle(arr, rng){ const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(rng()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function toB64(str){ const b = new TextEncoder().encode(str); let s = ""; b.forEach(function(x){ s += String.fromCharCode(x); }); return btoa(s); }
+function fromB64(b64){ const s = atob(b64); const b = new Uint8Array(s.length); for (let i=0;i<s.length;i++) b[i] = s.charCodeAt(i); return new TextDecoder().decode(b); }
+
+/* Parse "morgen / gehe* / ich / ins Kino" into chunks of words with roles */
+function parseSentence(str){
+  return str.split("/").map(function(raw){
+    let t = raw.trim(), comma = "";
+    if (t.endsWith(",")){ comma = ","; t = t.slice(0,-1).trim(); }
+    let role = "n";
+    if (t.endsWith("**")){ role = "v2"; t = t.slice(0,-2); }
+    else if (t.endsWith("*")){ role = "v1"; t = t.slice(0,-1); }
+    else if (t.endsWith("~")){ role = "cj"; t = t.slice(0,-1); }
+    t = t.trim();
+    const words = t.split(/\s+/).filter(Boolean);
+    if (words.length && comma) words[words.length-1] += comma;
+    return { words: words, role: role };
+  }).filter(function(c){ return c.words.length; });
+}
+function prepItem(pair){
+  const chunks = parseSentence(pair[0]);
+  const max = chunks.reduce(function(s,c){ return s + c.words.length; }, 0);
+  return { chunks: chunks, p: pair[1] || ".", min: chunks.length, max: max };
+}
+/* Split chunks until the sentence has exactly `size` parts */
+function makePieces(item, size, rng){
+  let list = item.chunks.map(function(c){ return { words: c.words.slice(), role: c.role }; });
+  while (list.length < size){
+    const splittable = [];
+    list.forEach(function(c, i){ if (c.words.length > 1) splittable.push(i); });
+    if (!splittable.length) break;
+    const i = splittable[Math.floor(rng()*splittable.length)];
+    const c = list[i];
+    const at = 1 + Math.floor(rng()*(c.words.length-1));
+    list.splice(i, 1, { words: c.words.slice(0,at), role: c.role }, { words: c.words.slice(at), role: c.role });
+  }
+  return list.map(function(c){ return { text: c.words.join(" "), role: c.role }; });
+}
+function sizesFor(n, k){
+  const base = Math.floor(n/k), rem = n % k, out = [];
+  for (let i=0;i<k;i++) out.push(base + (i < rem ? 1 : 0));
+  return out;
+}
+
+/* ================= Session & rounds ================= */
+// session: {level, n, k, hints, seed, custom?:{items:[[s,p]]}}
+function poolOf(session){
+  let raw;
+  if (session.level === CUSTOM) raw = session.custom.items;
+  else if (session.level === MIX) raw = [].concat.apply([], LEVELS.map(function(l){ return l.items; }));
+  else raw = LEVELS[session.level].items;
+  const tp = session.level === CUSTOM ? "" : TOPICS[session.topic || 0][0];
+  if (tp) raw = raw.filter(function(x){ return x[2] === tp; });
+  return raw.map(prepItem);
+}
+function checkSession(session){
+  const pool = poolOf(session);
+  if (!pool.length) return session.level === CUSTOM ? "Bitte mindestens einen Satz schreiben." : "Für diese Auswahl gibt es keine Sätze.";
+  const sizes = sizesFor(session.n, session.k);
+  const missing = [];
+  sizes.forEach(function(s){
+    if (!pool.some(function(it){ return it.min <= s && s <= it.max; }) && missing.indexOf(s) === -1) missing.push(s);
+  });
+  if (!missing.length) return "";
+  const lo = Math.min.apply(null, pool.map(function(i){ return i.min; }));
+  const hi = Math.max.apply(null, pool.map(function(i){ return i.max; }));
+  return "Für eine Gruppe mit " + missing.join(" oder ") + " Personen gibt es keinen passenden Satz. " +
+         "Mit dieser Auswahl passen Gruppen mit " + lo + " bis " + hi + " Personen. Ändere die Anzahl der Gruppen oder wähle mehr Sätze (z. B. „Alle Strukturen“).";
+}
+const roundCache = {};
+function computeRound(session, R){
+  const ck = sessionKey(session) + "#" + R;
+  if (roundCache[ck]) return roundCache[ck];
+  const pool = poolOf(session);
+  const sizes = sizesFor(session.n, session.k);
+  let used = [];
+  let groups = null;
+  for (let r = 1; r <= R; r++){
+    const rng = rngFor(session.seed, r);
+    const students = shuffle(Array.from({length: session.n}, function(_, i){ return i+1; }), rng);
+    const thisRound = [];
+    groups = [];
+    let idx = 0;
+    sizes.forEach(function(s, gi){
+      const fits = [];
+      pool.forEach(function(it, i){ if (it.min <= s && s <= it.max) fits.push(i); });
+      let cands = fits.filter(function(i){ return used.indexOf(i) === -1 && thisRound.indexOf(i) === -1; });
+      if (!cands.length) cands = fits.filter(function(i){ return thisRound.indexOf(i) === -1; });
+      if (!cands.length) cands = fits;
+      const pick = cands[Math.floor(rng()*cands.length)];
+      thisRound.push(pick);
+      if (used.indexOf(pick) === -1) used.push(pick);
+      if (fits.every(function(i){ return used.indexOf(i) !== -1; })) used = used.filter(function(i){ return fits.indexOf(i) === -1; });
+      const item = pool[pick];
+      const pieces = makePieces(item, s, rng);
+      const members = students.slice(idx, idx + s); idx += s;
+      const order = shuffle(members, rng);          // order[j] holds piece j
+      groups.push({ gi: gi, item: item, pieces: pieces, holders: order, members: members.slice().sort(function(a,b){return a-b;}) });
+    });
+  }
+  roundCache[ck] = groups;
+  return groups;
+}
+function sessionKey(s){ return [s.level, s.topic||0, s.n, s.k, s.hints?1:0, s.seed, s.custom ? JSON.stringify(s.custom.items) : ""].join("|"); }
+
+/* ================= Codes ================= */
+const ALPHA = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+function encodeShort(s){
+  let v = s.seed % 131072;        // 17 bits
+  v = v * 64 + s.n;               // 6 bits
+  v = v * 16 + s.k;               // 4 bits
+  v = v * 8 + s.level;            // 3 bits
+  v = v * 8 + (s.topic || 0);     // 3 bits
+  v = v * 2 + (s.hints ? 1 : 0);  // 1 bit
+  let out = "";
+  for (let i=0;i<7;i++){ out = ALPHA[v % 32] + out; v = Math.floor(v/32); }
+  let sum = 0; for (let i=0;i<7;i++) sum += ALPHA.indexOf(out[i]) * (i+3);
+  out += ALPHA[sum % 32];
+  return out.slice(0,4) + "-" + out.slice(4);
+}
+function decodeShort(code){
+  const c = code.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/O/g,"0").replace(/I/g,"1");
+  if (c.length !== 8) return null;
+  for (let i=0;i<8;i++) if (ALPHA.indexOf(c[i]) === -1) return null;
+  let sum = 0; for (let i=0;i<7;i++) sum += ALPHA.indexOf(c[i]) * (i+3);
+  if (ALPHA[sum % 32] !== c[7]) return null;
+  let v = 0; for (let i=0;i<7;i++) v = v*32 + ALPHA.indexOf(c[i]);
+  const hints = v % 2 === 1; v = Math.floor(v/2);
+  const topic = v % 8; v = Math.floor(v/8);
+  const level = v % 8; v = Math.floor(v/8);
+  const k = v % 16; v = Math.floor(v/16);
+  const n = v % 64; v = Math.floor(v/64);
+  const seed = v;
+  if (level > MIX || topic >= TOPICS.length || k < 1 || n < N_MIN || n > N_MAX || k > n) return null;
+  return { level: level, topic: topic, n: n, k: k, hints: hints, seed: seed };
+}
+function encodeLong(s){
+  return "MS2:" + toB64(JSON.stringify({ i: s.custom.items, n: s.n, k: s.k, h: s.hints ? 1 : 0, s: s.seed }));
+}
+function decodeLong(code){
+  const c = code.trim().replace(/\s+/g, "");
+  if (c.indexOf("MS2:") !== 0) return null;
+  try {
+    const d = JSON.parse(fromB64(c.slice(4)));
+    if (!d || !Array.isArray(d.i) || !d.i.length) return null;
+    const items = d.i.filter(function(x){ return Array.isArray(x) && typeof x[0] === "string"; })
+      .slice(0,60).map(function(x){ return [x[0].slice(0,300), ".?!".indexOf(x[1]) !== -1 ? x[1] : "."]; });
+    const n = +d.n, k = +d.k, seed = +d.s;
+    if (!items.length || !(n >= N_MIN && n <= N_MAX) || !(k >= 1 && k <= K_MAX && k <= n) || !(seed >= 0)) return null;
+    return { level: CUSTOM, topic: 0, n: n, k: k, hints: !!d.h, seed: seed, custom: { items: items } };
+  } catch(e){ return null; }
+}
+function codeOf(s){ return s.level === CUSTOM ? encodeLong(s) : encodeShort(s); }
+function decodeAny(code){ return decodeLong(code) || decodeShort(code); }
+
+function parseCustomText(text){
+  const items = [], errors = [];
+  text.split("\n").map(function(l){ return l.trim(); }).filter(Boolean).forEach(function(line, i){
+    let p = ".";
+    const last = line.slice(-1);
+    if (".?!".indexOf(last) !== -1){ p = last; line = line.slice(0,-1).trim(); }
+    const chunks = parseSentence(line);
+    const words = chunks.reduce(function(s,c){ return s + c.words.length; }, 0);
+    if (words < 2) errors.push("Zeile " + (i+1) + " ist zu kurz.");
+    else items.push([line, p]);
+  });
+  if (items.length > 60) errors.push("Maximal 60 Sätze.");
+  return { items: items.slice(0,60), errors: errors };
+}
+
+/* ================= Navigation ================= */
+const SCREENS = ["home","tSetup","tSession","sJoin","sCard"];
+function show(name){
+  SCREENS.forEach(function(s){ $(s).classList.toggle("hidden", s !== name); });
+  window.scrollTo(0,0);
+  if (name === "sCard") requestWake(); else releaseWake();
+}
+document.querySelectorAll("[data-home]").forEach(function(b){ b.addEventListener("click", function(){ show("home"); }); });
+
+let wake = null;
+function requestWake(){ try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(function(w){ wake = w; }).catch(function(){}); } catch(e){} }
+function releaseWake(){ try { if (wake) { wake.release(); wake = null; } } catch(e){} }
+document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible" && !$("sCard").classList.contains("hidden")) requestWake(); });
+
+/* ================= Teacher setup ================= */
+const setup = store.get("setup", { n: 10, k: 2, level: 0, topic: 0, hints: true, text: null });
+if (typeof setup.topic !== "number") setup.topic = 0;
+function autoK(n, level, topic){
+  const base = Math.max(1, Math.ceil(n/8));
+  if (level === CUSTOM) return base;
+  if (topic == null) topic = setup.topic;
+  const order = [];
+  for (let d = 0; d <= K_MAX; d++){ order.push(base + d); if (d) order.push(base - d); }
+  for (let i=0;i<order.length;i++){
+    const k = order[i];
+    if (k >= 1 && k <= Math.min(K_MAX, n) && !checkSession({ level: level, topic: topic, n: n, k: k, seed: 0 })) return k;
+  }
+  return base;
+}
+function renderSetup(){
+  $("nOut").textContent = setup.n;
+  $("kOut").textContent = setup.k;
+  const sizes = sizesFor(setup.n, setup.k);
+  const uniq = sizes.filter(function(v,i,a){ return a.indexOf(v) === i; });
+  $("sizesOut").textContent = setup.k === 1 ? "Eine Gruppe mit " + setup.n + " Personen."
+    : "Gruppen mit " + uniq.sort(function(a,b){return b-a;}).join(" oder ") + " Personen.";
+  const chips = $("levelChips"); chips.textContent = "";
+  LEVEL_NAMES.forEach(function(name, i){
+    const c = el("button", "chip", name);
+    c.setAttribute("aria-pressed", String(setup.level === i));
+    c.addEventListener("click", function(){
+      const wasAuto = setup.k === autoK(setup.n, setup.level);
+      setup.level = i;
+      if (wasAuto) setup.k = Math.min(autoK(setup.n, i), setup.n, K_MAX);
+      saveSetup(); renderSetup();
+    });
+    chips.appendChild(c);
+  });
+  const tchips = $("topicChips"); tchips.textContent = "";
+  TOPICS.forEach(function(t, i){
+    const c = el("button", "chip", t[1]);
+    c.setAttribute("aria-pressed", String(setup.topic === i));
+    c.addEventListener("click", function(){
+      const wasAuto = setup.k === autoK(setup.n, setup.level, setup.topic);
+      setup.topic = i;
+      if (wasAuto) setup.k = Math.min(autoK(setup.n, setup.level, i), setup.n, K_MAX);
+      saveSetup(); renderSetup();
+    });
+    tchips.appendChild(c);
+  });
+  $("topicBox").classList.toggle("hidden", setup.level === CUSTOM);
+  $("customBox").classList.toggle("hidden", setup.level !== CUSTOM);
+  if (setup.level !== CUSTOM){
+    const cnt = poolOf({ level: setup.level, topic: setup.topic }).length;
+    $("poolCount").textContent = cnt === 1 ? "1 Satz passt zu dieser Auswahl." : cnt + " Sätze passen zu dieser Auswahl.";
+  } else $("poolCount").textContent = "";
+  $("hintSwitch").setAttribute("aria-checked", String(setup.hints));
+  $("setupErr").textContent = "";
+}
+function saveSetup(){ setup.text = $("customText").value; store.set("setup", setup); }
+function setN(n){
+  n = Math.min(N_MAX, Math.max(N_MIN, n));
+  const wasAuto = setup.k === autoK(setup.n, setup.level);
+  setup.n = n;
+  if (wasAuto) setup.k = autoK(n, setup.level);
+  setup.k = Math.min(setup.k, n, K_MAX);
+  saveSetup(); renderSetup();
+}
+$("nMinus").addEventListener("click", function(){ setN(setup.n - 1); });
+$("nPlus").addEventListener("click", function(){ setN(setup.n + 1); });
+$("kMinus").addEventListener("click", function(){ setup.k = Math.max(1, setup.k - 1); saveSetup(); renderSetup(); });
+$("kPlus").addEventListener("click", function(){ setup.k = Math.min(K_MAX, setup.n, setup.k + 1); saveSetup(); renderSetup(); });
+$("hintSwitch").addEventListener("click", function(){ setup.hints = !setup.hints; saveSetup(); renderSetup(); });
+$("customText").addEventListener("input", function(){ saveSetup(); $("setupErr").textContent = ""; });
+
+$("startSession").addEventListener("click", function(){
+  const s = { level: setup.level, topic: setup.level === CUSTOM ? 0 : setup.topic, n: setup.n, k: setup.k, hints: setup.hints,
+              seed: Math.floor(Math.random() * 131072) };
+  if (s.level === CUSTOM){
+    const r = parseCustomText($("customText").value);
+    if (r.errors.length){ $("setupErr").textContent = r.errors.join(" "); return; }
+    if (!r.items.length){ $("setupErr").textContent = "Bitte mindestens einen Satz schreiben."; return; }
+    s.custom = { items: r.items };
+  }
+  const problem = checkSession(s);
+  if (problem){ $("setupErr").textContent = problem; return; }
+  store.set("tSession", { s: s, round: 1 });
+  openTeacherSession();
+});
+
+/* ================= Teacher session ================= */
+let tState = null;
+let openGroups = {};
+function openTeacherSession(){
+  if (endArmed) resetEndBtn();
+  tState = store.get("tSession", null);
+  if (!tState) { renderSetup(); show("tSetup"); return; }
+  openGroups = {};
+  const s = tState.s;
+  const code = codeOf(s);
+  const long = s.level === CUSTOM;
+  $("codeShow").textContent = code;
+  $("codeShow").classList.toggle("long", long);
+  $("codeHint").textContent = long
+    ? "Eigene Sätze: Code per WhatsApp schicken. Nummern 1 bis " + s.n + "."
+    : "Nummern 1 bis " + s.n + " eingeben";
+  $("sessInfo").textContent = LEVEL_NAMES[s.level] + (s.topic ? " · " + TOPICS[s.topic][1] : "") + " · " + s.n + " Personen";
+  renderTeacherRound();
+  show("tSession");
+}
+function renderTeacherRound(){
+  const s = tState.s, R = tState.round;
+  $("tRound").textContent = "Runde " + R;
+  $("tPrev").disabled = R <= 1;
+  const groups = computeRound(s, R);
+  const box = $("groups"); box.textContent = "";
+  groups.forEach(function(g){
+    const col = GROUPS[g.gi % GROUPS.length];
+    const card = el("div", "group"); card.style.setProperty("--gc", col[1]);
+    const head = el("div", "group-head");
+    head.appendChild(el("h3", null, "Gruppe " + col[0]));
+    head.appendChild(el("span", "count", g.pieces.length + " Personen"));
+    const tg = el("button", "toggle", openGroups[g.gi] ? "Lösung verbergen" : "Lösung zeigen");
+    tg.addEventListener("click", function(){ openGroups[g.gi] = !openGroups[g.gi]; renderTeacherRound(); });
+    head.appendChild(tg);
+    card.appendChild(head);
+    card.appendChild(el("div", "members", "Nr. " + g.members.join(", ")));
+    if (openGroups[g.gi]){
+      const sol = el("div", "solution");
+      g.pieces.forEach(function(p, j){
+        const w = el("div", "sw");
+        w.appendChild(el("span", p.role, j === 0 ? cap(p.text) : p.text));
+        w.appendChild(el("span", "who", "Nr. " + g.holders[j]));
+        sol.appendChild(w);
+      });
+      sol.appendChild(el("div", "sw punct", g.item.p));
+      card.appendChild(sol);
+    }
+    box.appendChild(card);
+  });
+  const allOpen = groups.every(function(g){ return openGroups[g.gi]; });
+  $("toggleAll").textContent = allOpen ? "Alle Lösungen verbergen" : "Alle Lösungen zeigen";
+}
+function setTeacherRound(r){
+  tState.round = Math.max(1, Math.min(99, r));
+  openGroups = {};
+  store.set("tSession", tState);
+  renderTeacherRound();
+}
+$("tPrev").addEventListener("click", function(){ setTeacherRound(tState.round - 1); });
+$("tNext").addEventListener("click", function(){ setTeacherRound(tState.round + 1); });
+$("toggleAll").addEventListener("click", function(){
+  const groups = computeRound(tState.s, tState.round);
+  const allOpen = groups.every(function(g){ return openGroups[g.gi]; });
+  groups.forEach(function(g){ openGroups[g.gi] = !allOpen; });
+  renderTeacherRound();
+});
+let endArmed = null;
+function resetEndBtn(){ clearTimeout(endArmed); endArmed = null; $("endSession").textContent = "‹ Neue Sitzung"; $("endSession").style.color = ""; }
+$("endSession").addEventListener("click", function(){
+  if (!endArmed){
+    $("endSession").textContent = "Wirklich beenden? Nochmal tippen";
+    $("endSession").style.color = "var(--bad)";
+    endArmed = setTimeout(resetEndBtn, 4000);
+    return;
+  }
+  resetEndBtn();
+  store.del("tSession"); tState = null; renderSetup(); show("tSetup");
+});
+$("copyCode").addEventListener("click", function(){
+  const txt = $("codeShow").textContent;
+  const btn = $("copyCode");
+  const ok = function(){ btn.textContent = "Kopiert"; setTimeout(function(){ btn.textContent = "Code kopieren"; }, 1500); };
+  const fallback = function(){
+    const range = document.createRange(); range.selectNodeContents($("codeShow"));
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    try { document.execCommand("copy"); ok(); } catch(e){ btn.textContent = "Bitte markieren und kopieren"; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, fallback); else fallback();
+});
+
+/* ================= Student ================= */
+let sState = null;  // {code, num, round, s}
+$("joinBtn").addEventListener("click", function(){
+  const code = $("joinCode").value;
+  const num = parseInt($("joinNum").value, 10);
+  const s = decodeAny(code);
+  if (!s){ $("joinErr").textContent = "Der Code ist nicht richtig. Prüfe die Buchstaben und Zahlen."; return; }
+  if (!(num >= 1 && num <= s.n)){ $("joinErr").textContent = "Die Nummer muss zwischen 1 und " + s.n + " liegen."; return; }
+  if (checkSession(s)){ $("joinErr").textContent = "Dieser Code funktioniert nicht. Frag die Lehrperson."; return; }
+  $("joinErr").textContent = "";
+  const prev = store.get("sState", null);
+  const round = prev && prev.code === code.trim() && prev.num === num ? prev.round : 1;
+  sState = { code: code.trim(), num: num, round: round, s: s };
+  store.set("sState", { code: sState.code, num: num, round: round });
+  renderCard(false);
+  show("sCard");
+});
+function fitWord(node, text){
+  const w = Math.min(window.innerWidth, 620) - 70;
+  let longest = text.split(" ").reduce(function(m, x){ return Math.max(m, x.length); }, 1);
+  if (text.length <= 12) longest = text.length;
+  const byWidth = w / (longest * 0.58);
+  const lines = Math.ceil(text.length / Math.max(longest, 8));
+  const byHeight = (window.innerHeight * 0.4) / (lines * 1.1);
+  node.style.fontSize = Math.max(28, Math.min(130, byWidth, byHeight)) + "px";
+}
+function renderCard(animate){
+  const s = sState.s, R = sState.round;
+  const groups = computeRound(s, R);
+  let g = null, j = -1;
+  groups.forEach(function(gr){ const k = gr.holders.indexOf(sState.num); if (k !== -1){ g = gr; j = k; } });
+  if (!g) return;
+  const piece = g.pieces[j];
+  const col = GROUPS[g.gi % GROUPS.length];
+  const card = $("wordcard");
+  card.style.setProperty("--gc", col[1]);
+  $("gName").textContent = "Gruppe " + col[0];
+  $("gSize").textContent = g.pieces.length + " Personen";
+  $("cardNum").textContent = "Nr. " + sState.num;
+  const wt = $("wordText"); wt.textContent = ""; wt.className = "word";
+  const inner = el("span", s.hints ? piece.role : "", piece.text);
+  wt.appendChild(inner);
+  fitWord(wt, piece.text);
+  const foot = $("cardFoot"); foot.textContent = "";
+  if (s.hints){
+    if (piece.role !== "n"){
+      const tag = el("div", "role-tag " + piece.role, piece.role === "v1" ? "Verb" : piece.role === "v2" ? "Verbteil am Ende" : "Konjunktion");
+      foot.appendChild(tag);
+    }
+    foot.appendChild(el("div", null, g.item.p === "?" ? "Euer Satz ist eine Frage (?)" : g.item.p === "!" ? "Euer Satz endet mit !" : "Euer Satz endet mit einem Punkt (.)"));
+  } else {
+    foot.appendChild(el("div", null, "Findet eure Gruppe und bildet den Satz!"));
+  }
+  $("sRound").textContent = "Runde " + R;
+  $("sPrev").disabled = R <= 1;
+  if (animate){ card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop"); }
+}
+function setStudentRound(r){
+  sState.round = Math.max(1, Math.min(99, r));
+  store.set("sState", { code: sState.code, num: sState.num, round: sState.round });
+  renderCard(true);
+}
+$("sPrev").addEventListener("click", function(){ setStudentRound(sState.round - 1); });
+$("sNext").addEventListener("click", function(){ setStudentRound(sState.round + 1); });
+$("leaveBtn").addEventListener("click", function(){ show("sJoin"); });
+window.addEventListener("resize", function(){ if (sState && !$("sCard").classList.contains("hidden")) renderCard(false); });
+
+/* ================= Home ================= */
+$("goTeacher").addEventListener("click", function(){
+  if (store.get("tSession", null)) openTeacherSession();
+  else { renderSetup(); show("tSetup"); }
+});
+$("goStudent").addEventListener("click", function(){
+  const prev = store.get("sState", null);
+  if (prev){ $("joinCode").value = prev.code; $("joinNum").value = prev.num; }
+  $("joinErr").textContent = "";
+  show("sJoin");
+});
+
+if (setup.text) $("customText").value = setup.text;
+show("home");
+
+})();
+</script>
+</body>
+</html>
