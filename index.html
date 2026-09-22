@@ -120,6 +120,13 @@ code{font-family:inherit; font-weight:700; background:var(--paper); padding:1px 
 .wordcard .role-tag{display:inline-block; font-size:14px; font-weight:700; border:2px solid currentColor; border-radius:999px; padding:2px 10px; margin-bottom:6px}
 .pop{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(.94); opacity:.3}100%{transform:scale(1); opacity:1}}
+.timer{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:14px; text-align:center}
+.timer .tval{font-size:clamp(48px,16vw,80px); font-weight:700; font-variant-numeric:tabular-nums; line-height:1}
+.timer .tlabel{color:var(--ink-soft); font-size:15px; margin-top:4px}
+.timer.warn .tval{color:var(--part)}
+.timer.over{border-color:var(--bad); background:var(--bad-bg)}
+.timer.over .tval{color:var(--bad)}
+.timer .actions{margin-top:10px}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
 </style>
 </head>
@@ -158,11 +165,27 @@ code{font-family:inherit; font-weight:700; background:var(--paper); padding:1px 
   </div>
 
   <div class="panel">
-    <span class="field-label">Grammatik</span>
-    <div class="chips" id="levelChips"></div>
-    <div id="topicBox" style="margin-top:14px">
-      <span class="field-label">Wortschatz</span>
-      <div class="chips" id="topicChips"></div>
+    <span class="field-label">Wie viele Runden?</span>
+    <div class="chips" id="roundChips"></div>
+    <div style="margin-top:14px">
+      <span class="field-label">Zeit pro Runde</span>
+      <span class="field-hint">Die Uhr läuft auf dem Bildschirm der Lehrperson.</span>
+      <div class="chips" id="timeChips"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <span class="field-label">Niveau</span>
+    <div class="chips" id="nivChips"></div>
+    <div id="bankBox">
+      <div style="margin-top:14px">
+        <span class="field-label">Wortschatz</span>
+        <div class="chips" id="topicChips"></div>
+      </div>
+      <div style="margin-top:14px">
+        <span class="field-label">Grammatik</span>
+        <div class="chips" id="gramChips"></div>
+      </div>
     </div>
     <p class="small muted" id="poolCount" style="margin-top:10px"></p>
     <div id="customBox" class="hidden" style="margin-top:12px">
@@ -170,7 +193,7 @@ code{font-family:inherit; font-weight:700; background:var(--paper); padding:1px 
       <ul class="syntax">
         <li><code>*</code> nach dem Verb: <span class="v1"><b>Verb</b></span></li>
         <li><code>**</code> nach dem Verbteil am Ende: <span class="v2"><b>Verbteil</b></span></li>
-        <li><code>~</code> nach <i>weil, dass …</i>: <span class="cj"><b>Konjunktion</b></span></li>
+        <li><code>~</code> nach <i>weil, dass, ob, der/die/das …</i>: <span class="cj"><b>Verbindungswort</b></span></li>
         <li>Am Ende <code>.</code> <code>?</code> oder <code>!</code> — das erste Wort klein schreiben (außer Nomen).</li>
       </ul>
       <textarea id="customText" spellcheck="false">morgen / gehe* / ich / mit meiner Familie / ins Kino .
@@ -209,9 +232,18 @@ ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte* .</texta
     <button id="tNext" aria-label="Nächste Runde">›</button>
   </div>
   <p class="small muted" style="text-align:center">Neue Runde = neue Gruppen und neue Sätze. Sag der Klasse die Rundennummer.</p>
+  <p class="small hidden" id="lastNote" style="text-align:center;font-weight:700;color:var(--verb)">Letzte Runde!</p>
+  <div class="timer" id="timerBox">
+    <div class="tval" id="tVal">0:00</div>
+    <div class="tlabel" id="tLabel">Start drücken, wenn alle ihr Wort haben.</div>
+    <div class="actions">
+      <button class="btn" id="tStart">Start</button>
+      <button class="btn ghost" id="tReset">Zurücksetzen</button>
+    </div>
+  </div>
   <div class="actions"><button class="btn ghost" id="toggleAll">Alle Lösungen zeigen</button></div>
   <div class="groups" id="groups"></div>
-  <div class="legend"><span class="l1">Verb</span><span class="l2">Verbteil am Ende</span><span class="l3">weil / dass</span></div>
+  <div class="legend"><span class="l1">Verb</span><span class="l2">Verbteil am Ende</span><span class="l3">Verbindungswort</span></div>
 </section>
 
 <!-- STUDENT JOIN -->
@@ -255,89 +287,200 @@ ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte* .</texta
 (function(){
 "use strict";
 
-/* ================= Sentence bank ================= */
-// Themen: H = Hotel, R = Reisen, S = Stadt & Freizeit, A = Alltag
-const LEVELS = [
- {title:"Aussagesätze", items:[
-  ["ich / wohne* / in Sucre",".","A"],
-  ["das Hotel / hat* / 40 Zimmer",".","H"],
-  ["morgen / gehe* / ich / ins Kino",".","S"],
-  ["die Rezeption / ist* / 24 Stunden / geöffnet",".","H"],
-  ["der Flug nach Madrid / dauert* / zehn Stunden",".","R"],
-  ["im Sommer / reisen* / viele Touristen / nach Deutschland",".","R"],
-  ["heute / trinkt* / Anna / einen Kaffee / im Café",".","A"],
-  ["meine Schwester / arbeitet* / seit zwei Jahren / in einer Bank",".","A"],
-  ["jeden Morgen / frühstücken* / die Gäste / im Restaurant / vom Hotel",".","H"],
-  ["wir / fahren* / morgen früh / mit dem Bus / nach Potosí",".","R"],
-  ["am Wochenende / besuchen* / wir / mit unseren Freunden / das Museum / in Sucre",".","S"]
- ]},
- {title:"Fragen", items:[
-  ["wo / wohnst* / du","?","A"],
-  ["sprechen* / Sie / Englisch","?","R"],
-  ["gehst* / du / morgen / ins Kino","?","S"],
-  ["was / machst* / du / am Wochenende","?","A"],
-  ["um wie viel Uhr / gibt* / es / Frühstück","?","H"],
-  ["wie lange / dauert* / die Fahrt / nach Uyuni","?","R"],
-  ["wann / fährt* / der nächste Bus / nach La Paz","?","R"],
-  ["was / kostet* / ein Doppelzimmer / für zwei Nächte","?","H"],
-  ["wann / beginnt* / die Führung / durch die Altstadt","?","S"],
-  ["haben* / Sie / heute / noch / ein freies Zimmer","?","H"],
-  ["wie viele Touristen / besuchen* / jedes Jahr / die Stadt / Sucre","?","S"]
- ]},
- {title:"Trennbare Verben", items:[
-  ["stehst* / du / früh / auf**","?","A"],
-  ["die Führung / fängt* / um 10 Uhr / an**",".","S"],
-  ["der Bus / fährt* / um 9 Uhr / ab**",".","R"],
-  ["ich / rufe* / dich / morgen / an**",".","A"],
-  ["bitte / steigen* / Sie / hier / aus**","!","R"],
-  ["wir / sehen* / heute Abend / einen Film / an**",".","S"],
-  ["wir / kaufen* / am Samstag / im Supermarkt / ein**",".","A"],
-  ["die Gäste / checken* / morgen / um 12 Uhr / aus**",".","H"],
-  ["der Gast / füllt* / das Formular / an der Rezeption / aus**",".","H"],
-  ["der Zug / kommt* / heute Abend / um 8 Uhr / in Berlin / an**",".","R"]
- ]},
- {title:"Modalverben", items:[
-  ["kannst* / du / Deutsch / sprechen**","?","A"],
-  ["ich / will* / ein Zimmer / reservieren**",".","H"],
-  ["hier / darf* / man / nicht / rauchen**",".","S"],
-  ["kann* / ich / hier / ein Ticket / kaufen**","?","R"],
-  ["ich / muss* / heute / meine Hausaufgaben / machen**",".","A"],
-  ["wir / müssen* / den Zug / um 7 Uhr / nehmen**",".","R"],
-  ["möchten* / Sie / ein Zimmer / mit Frühstück / buchen**","?","H"],
-  ["die Touristen / wollen* / am Nachmittag / die Kathedrale / besuchen**",".","S"],
-  ["ich / möchte* / morgen / mit dir / ins Kino / gehen**",".","S"],
-  ["wir / müssen* / heute / bis 10 Uhr / im Hotel / arbeiten**",".","H"]
- ]},
- {title:"Perfekt", items:[
-  ["ich / habe* / lange / geschlafen**",".","A"],
-  ["wir / sind* / nach Berlin / gefahren**",".","R"],
-  ["hast* / du / das Museum / besucht**","?","S"],
-  ["Maria / hat* / gestern / ein Zimmer / gebucht**",".","H"],
-  ["was / hast* / du / am Wochenende / gemacht**","?","A"],
-  ["wir / haben* / am Samstag / den Markt / besucht**",".","S"],
-  ["die Gäste / haben* / das Zimmer / nicht / bezahlt**",".","H"],
-  ["ich / habe* / gestern Abend / im Restaurant / Pizza / gegessen**",".","S"],
-  ["der Gast / ist* / am Montag / mit dem Bus / in Sucre / angekommen**",".","R"],
-  ["letztes Jahr / sind* / wir / mit dem Flugzeug / nach Europa / geflogen**",".","R"]
- ]},
- {title:"weil / dass", items:[
-  ["ich / hoffe*, / dass~ / er / kommt*",".","A"],
-  ["sie / sagt*, / dass~ / es / regnet*",".","A"],
-  ["er / sagt*, / dass~ / der Bus / später / kommt*",".","R"],
-  ["ich / finde*, / dass~ / Sucre / sehr schön / ist*",".","S"],
-  ["wir / gehen* / ins Museum, / weil~ / es / regnet*",".","S"],
-  ["ich / denke*, / dass~ / wir / ein Zimmer / brauchen*",".","H"],
-  ["ich / glaube*, / dass~ / das Hotel / sehr gut / ist*",".","H"],
-  ["ich / weiß*, / dass~ / du / gestern / angekommen** / bist*",".","R"],
-  ["ich / bleibe* / zu Hause, / weil~ / ich / krank / bin*",".","A"],
-  ["der Gast / ist* / froh, / weil~ / das Zimmer / sauber / ist*",".","H"],
-  ["wir / fahren* / nach Uyuni, / weil~ / die Landschaft / wunderschön / ist*",".","R"],
-  ["ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte*",".","A"]
- ]}
+/* ================= Classification ================= */
+const NIVEAUS = ["A2", "B1", "A2 + B1", "Eigene Sätze"];
+const NIV_BOTH = 2, NIV_CUSTOM = 3;
+const TOPICS = [
+  ["", "Alle Themen"],
+  ["U", "Unterkunft & Rezeption"],
+  ["E", "Restaurant & Essen"],
+  ["R", "Reisen & Verkehr"],
+  ["K", "Stadt, Kultur & Freizeit"],
+  ["W", "Arbeit & Studium"],
+  ["F", "Alltag & Familie"]
 ];
-const MIX = 6, CUSTOM = 7;
-const LEVEL_NAMES = LEVELS.map(function(l){ return l.title; }).concat(["Alle Strukturen","Eigene Sätze"]);
-const TOPICS = [["","Alle Themen"],["H","Hotel"],["R","Reisen"],["S","Stadt & Freizeit"],["A","Alltag"]];
+// index 0 = alle Strukturen
+const GRAMMAR = [
+  { id:"",    niv:"",   name:"Alle Strukturen" },
+  { id:"a2s", niv:"A2", name:"Aussagesätze" },
+  { id:"a2f", niv:"A2", name:"Fragen" },
+  { id:"a2t", niv:"A2", name:"Trennbare Verben" },
+  { id:"a2m", niv:"A2", name:"Modalverben" },
+  { id:"a2p", niv:"A2", name:"Perfekt" },
+  { id:"b1n", niv:"B1", name:"weil, dass, wenn, obwohl" },
+  { id:"b1i", niv:"B1", name:"Indirekte Fragen" },
+  { id:"b1r", niv:"B1", name:"Relativsätze" },
+  { id:"b1z", niv:"B1", name:"zu + Infinitiv, um … zu" },
+  { id:"b1p", niv:"B1", name:"Passiv" }
+];
+
+/* ================= Sentence bank =================
+   [Satz, Satzzeichen, Grammatik-ID, Thema]
+   /  trennt feste Teile · *  Verb · **  Verbteil am Ende · ~  Verbindungswort */
+const BANK = [
+ // ---------- A2 · Aussagesätze ----------
+ ["die Rezeption / ist* / 24 Stunden / geöffnet", ".", "a2s", "U"],
+ ["jeden Morgen / frühstücken* / die Gäste / im Restaurant / vom Hotel", ".", "a2s", "U"],
+ ["heute / trinkt* / Anna / einen Kaffee / mit Milch", ".", "a2s", "E"],
+ ["am Sonntag / kocht* / meine Mutter / eine Suppe / für die ganze Familie", ".", "a2s", "E"],
+ ["der Flug nach Madrid / dauert* / zehn Stunden", ".", "a2s", "R"],
+ ["wir / fahren* / morgen früh / mit dem Bus / nach Potosí", ".", "a2s", "R"],
+ ["morgen / gehe* / ich / ins Kino", ".", "a2s", "K"],
+ ["am Wochenende / besuchen* / wir / mit unseren Freunden / das Museum / in Sucre", ".", "a2s", "K"],
+ ["meine Schwester / arbeitet* / seit zwei Jahren / in einer Bank", ".", "a2s", "W"],
+ ["ich / studiere* / Tourismus / an der Universität", ".", "a2s", "W"],
+ ["ich / wohne* / in Sucre", ".", "a2s", "F"],
+ ["mein Bruder / hat* / zwei Kinder", ".", "a2s", "F"],
+
+ // ---------- A2 · Fragen ----------
+ ["haben* / Sie / noch / ein freies Zimmer", "?", "a2f", "U"],
+ ["um wie viel Uhr / gibt* / es / Frühstück", "?", "a2f", "U"],
+ ["was / kostet* / ein Kaffee", "?", "a2f", "E"],
+ ["haben* / Sie / einen Tisch / für vier Personen", "?", "a2f", "E"],
+ ["wann / fährt* / der nächste Bus / nach La Paz", "?", "a2f", "R"],
+ ["wie lange / dauert* / die Fahrt / nach Uyuni", "?", "a2f", "R"],
+ ["wann / beginnt* / die Führung / durch die Altstadt", "?", "a2f", "K"],
+ ["gehst* / du / morgen / ins Kino", "?", "a2f", "K"],
+ ["wo / arbeitest* / du", "?", "a2f", "W"],
+ ["was / studierst* / du / an der Universität", "?", "a2f", "W"],
+ ["wie viele Geschwister / hast* / du", "?", "a2f", "F"],
+ ["was / machst* / du / am Wochenende", "?", "a2f", "F"],
+
+ // ---------- A2 · Trennbare Verben ----------
+ ["die Gäste / checken* / morgen / um 12 Uhr / aus**", ".", "a2t", "U"],
+ ["der Gast / füllt* / das Formular / an der Rezeption / aus**", ".", "a2t", "U"],
+ ["wir / kaufen* / am Samstag / im Supermarkt / ein**", ".", "a2t", "E"],
+ ["der Kellner / räumt* / den Tisch / ab**", ".", "a2t", "E"],
+ ["der Bus / fährt* / um 9 Uhr / ab**", ".", "a2t", "R"],
+ ["der Zug / kommt* / heute Abend / um 8 Uhr / in Berlin / an**", ".", "a2t", "R"],
+ ["die Führung / fängt* / um 10 Uhr / an**", ".", "a2t", "K"],
+ ["wir / sehen* / heute Abend / einen Film / an**", ".", "a2t", "K"],
+ ["der Kurs / fängt* / am Montag / an**", ".", "a2t", "W"],
+ ["ich / rufe* / meinen Chef / morgen / an**", ".", "a2t", "W"],
+ ["stehst* / du / früh / auf**", "?", "a2t", "F"],
+ ["meine Tochter / räumt* / ihr Zimmer / nicht / auf**", ".", "a2t", "F"],
+
+ // ---------- A2 · Modalverben ----------
+ ["ich / möchte* / ein Zimmer / reservieren**", ".", "a2m", "U"],
+ ["möchten* / Sie / ein Zimmer / mit Frühstück / buchen**", "?", "a2m", "U"],
+ ["ich / möchte* / die Rechnung / bezahlen**", ".", "a2m", "E"],
+ ["im Restaurant / darf* / man / nicht / rauchen**", ".", "a2m", "E"],
+ ["kann* / ich / hier / ein Ticket / kaufen**", "?", "a2m", "R"],
+ ["wir / müssen* / den Zug / um 7 Uhr / nehmen**", ".", "a2m", "R"],
+ ["die Touristen / wollen* / am Nachmittag / die Kathedrale / besuchen**", ".", "a2m", "K"],
+ ["ich / möchte* / morgen / mit dir / ins Kino / gehen**", ".", "a2m", "K"],
+ ["wir / müssen* / heute / bis 10 Uhr / im Hotel / arbeiten**", ".", "a2m", "W"],
+ ["kannst* / du / Deutsch / sprechen**", "?", "a2m", "W"],
+ ["ich / muss* / heute / meine Hausaufgaben / machen**", ".", "a2m", "F"],
+ ["meine Kinder / wollen* / am Wochenende / Fußball / spielen**", ".", "a2m", "F"],
+
+ // ---------- A2 · Perfekt ----------
+ ["Maria / hat* / gestern / ein Zimmer / gebucht**", ".", "a2p", "U"],
+ ["die Gäste / haben* / das Zimmer / noch nicht / bezahlt**", ".", "a2p", "U"],
+ ["ich / habe* / gestern Abend / im Restaurant / Pizza / gegessen**", ".", "a2p", "E"],
+ ["hast* / du / schon / gefrühstückt**", "?", "a2p", "E"],
+ ["wir / sind* / nach Berlin / gefahren**", ".", "a2p", "R"],
+ ["letztes Jahr / sind* / wir / mit dem Flugzeug / nach Europa / geflogen**", ".", "a2p", "R"],
+ // Extra: Reisen & Verkehr · Perfekt — „Meine letzten Ferien“
+ ["ich / bin* / geflogen**", ".", "a2p", "R"],
+ ["wir / haben* / gezeltet**", ".", "a2p", "R"],
+ ["hast* / du / Urlaub / gemacht**", "?", "a2p", "R"],
+ ["ich / bin* / viel / gewandert**", ".", "a2p", "R"],
+ ["wo / hast* / du / deinen Urlaub / verbracht**", "?", "a2p", "R"],
+ ["wohin / bist* / du / in den Ferien / gefahren**", "?", "a2p", "R"],
+ ["wie / bist* / du / nach Uyuni / gekommen**", "?", "a2p", "R"],
+ ["hast* / du / dein Ticket / online / gekauft**", "?", "a2p", "R"],
+ ["wie lange / seid* / ihr / in Uyuni / geblieben**", "?", "a2p", "R"],
+ ["ich / habe* / im Urlaub / viele Fotos / gemacht**", ".", "a2p", "R"],
+ ["der Flug / hat* / drei Stunden / Verspätung / gehabt**", ".", "a2p", "R"],
+ ["ich / habe* / meinen Koffer / am Flughafen / vergessen**", ".", "a2p", "R"],
+ ["wir / sind* / am Montag / in Santa Cruz / angekommen**", ".", "a2p", "R"],
+ ["meine Freunde / haben* / in Samaipata / eine Wanderung / gemacht**", ".", "a2p", "R"],
+ ["ich / bin* / mit meiner Familie / nach Cusco / gereist**", ".", "a2p", "R"],
+ ["wir / haben* / zwei Nächte / in einem Hostel / übernachtet**", ".", "a2p", "R"],
+ ["am ersten Tag / haben* / wir / die Altstadt / besichtigt**", ".", "a2p", "R"],
+ ["bist* / du / schon einmal / mit dem Zug / gefahren**", "?", "a2p", "R"],
+ ["wir / sind* / mit dem Bus / nach La Paz / gefahren**", ".", "a2p", "R"],
+ ["letzten Sommer / haben* / wir / Urlaub / am Titicacasee / gemacht**", ".", "a2p", "R"],
+ ["wir / haben* / im Zug / nach Oruro / nette Leute / kennengelernt**", ".", "a2p", "R"],
+ ["in den Ferien / sind* / wir / mit dem Auto / durch ganz Bolivien / gefahren**", ".", "a2p", "R"],
+ ["hast* / du / das Museum / besucht**", "?", "a2p", "K"],
+ ["wir / haben* / am Samstag / den Markt / besucht**", ".", "a2p", "K"],
+ ["ich / habe* / drei Jahre / in einem Hotel / gearbeitet**", ".", "a2p", "W"],
+ ["hat* / er / die Prüfung / bestanden**", "?", "a2p", "W"],
+ ["ich / habe* / lange / geschlafen**", ".", "a2p", "F"],
+ ["was / hast* / du / am Wochenende / gemacht**", "?", "a2p", "F"],
+
+ // ---------- B1 · weil, dass, wenn, obwohl ----------
+ ["der Gast / ist* / froh, / weil~ / das Zimmer / sehr sauber / ist*", ".", "b1n", "U"],
+ ["ich / glaube*, / dass~ / das Hotel / keinen Parkplatz / hat*", ".", "b1n", "U"],
+ ["wir / essen* / oft / zu Hause, / weil~ / das Restaurant / zu teuer / ist*", ".", "b1n", "E"],
+ ["wenn~ / ich / Hunger / habe*, / esse* / ich / ein Brot", ".", "b1n", "E"],
+ ["wir / fahren* / nach Uyuni, / weil~ / die Landschaft / wunderschön / ist*", ".", "b1n", "R"],
+ ["obwohl~ / es / regnet*, / fahren* / wir / zum Titicacasee", ".", "b1n", "R"],
+ ["ich / finde*, / dass~ / Sucre / eine sehr schöne Stadt / ist*", ".", "b1n", "K"],
+ ["wenn~ / das Wetter / gut / ist*, / gehen* / wir / in den Park", ".", "b1n", "K"],
+ ["ich / lerne* / Deutsch, / weil~ / ich / in Wien / arbeiten** / möchte*", ".", "b1n", "W"],
+ ["obwohl~ / sie / müde / ist*, / arbeitet* / sie / bis 22 Uhr", ".", "b1n", "W"],
+ ["ich / bleibe* / heute / zu Hause, / weil~ / ich / krank / bin*", ".", "b1n", "F"],
+ ["meine Mutter / sagt*, / dass~ / das Essen / fertig / ist*", ".", "b1n", "F"],
+
+ // ---------- B1 · Indirekte Fragen ----------
+ ["können* / Sie / mir / sagen**, / wann~ / das Frühstück / beginnt*", "?", "b1i", "U"],
+ ["der Gast / fragt*, / ob~ / das Zimmer / einen Balkon / hat*", ".", "b1i", "U"],
+ ["ich / weiß* / nicht, / was~ / ich / bestellen** / soll*", ".", "b1i", "E"],
+ ["wissen* / Sie, / ob~ / das Restaurant / heute / geöffnet** / ist*", "?", "b1i", "E"],
+ ["ich / möchte* / wissen**, / wann~ / der Zug / nach Oruro / fährt*", ".", "b1i", "R"],
+ ["können* / Sie / mir / sagen**, / wo~ / der Busbahnhof / ist*", "?", "b1i", "R"],
+ ["weißt* / du, / wann~ / das Museum / aufmacht*", "?", "b1i", "K"],
+ ["wir / fragen*, / ob~ / die Führung / auch / auf Englisch / ist*", ".", "b1i", "K"],
+ ["ich / frage* / meinen Chef, / ob~ / ich / morgen / frei / habe*", ".", "b1i", "W"],
+ ["weißt* / du, / wann~ / die Prüfung / ist*", "?", "b1i", "W"],
+ ["meine Oma / fragt*, / wann~ / wir / sie / besuchen*", ".", "b1i", "F"],
+ ["ich / weiß* / nicht, / ob~ / mein Bruder / heute / kommt*", ".", "b1i", "F"],
+
+ // ---------- B1 · Relativsätze ----------
+ ["das Hotel, / das~ / wir / gebucht** / haben*, / ist* / sehr schön", ".", "b1r", "U"],
+ ["das / ist* / der Gast, / der~ / gestern / angekommen** / ist*", ".", "b1r", "U"],
+ ["der Kuchen, / den~ / meine Oma / backt*, / schmeckt* / sehr gut", ".", "b1r", "E"],
+ ["das / ist* / das Restaurant, / in dem~ / wir / gestern / gegessen** / haben*", ".", "b1r", "E"],
+ ["der Bus, / der~ / nach Tarija / fährt*, / ist* / voll", ".", "b1r", "R"],
+ ["wir / suchen* / einen Reiseführer, / der~ / Deutsch / spricht*", ".", "b1r", "R"],
+ ["das Museum, / das~ / wir / besucht** / haben*, / war* / sehr interessant", ".", "b1r", "K"],
+ ["Sucre / ist* / eine Stadt, / die~ / viele Touristen / besuchen*", ".", "b1r", "K"],
+ ["ich / suche* / eine Arbeit, / die~ / mir / Spaß / macht*", ".", "b1r", "W"],
+ ["die Kollegin, / die~ / neben mir / sitzt*, / kommt* / aus Österreich", ".", "b1r", "W"],
+ ["ich / habe* / einen Bruder, / der~ / in Cochabamba / wohnt*", ".", "b1r", "F"],
+ ["das Geschenk, / das~ / ich / bekommen** / habe*, / ist* / sehr schön", ".", "b1r", "F"],
+
+ // ---------- B1 · zu + Infinitiv, um … zu ----------
+ ["wir / rufen* / im Hotel / an**, / um~ / ein Zimmer / zu reservieren**", ".", "b1z", "U"],
+ ["vergessen* / Sie / nicht, / den Schlüssel / abzugeben**", "!", "b1z", "U"],
+ ["ich / habe* / keine Lust, / heute / zu kochen**", ".", "b1z", "E"],
+ ["wir / gehen* / in den Supermarkt, / um~ / Brot / zu kaufen**", ".", "b1z", "E"],
+ ["ich / spare* / Geld, / um~ / nach Deutschland / zu reisen**", ".", "b1z", "R"],
+ ["es / ist* / wichtig, / den Pass / mitzunehmen**", ".", "b1z", "R"],
+ ["wir / fahren* / nach Potosí, / um~ / die Mine / zu besichtigen**", ".", "b1z", "K"],
+ ["hast* / du / Lust, / ins Theater / zu gehen**", "?", "b1z", "K"],
+ ["ich / lerne* / Deutsch, / um~ / in einem Hotel / in Deutschland / zu arbeiten**", ".", "b1z", "W"],
+ ["ich / versuche*, / pünktlich / zu sein**", ".", "b1z", "W"],
+ ["meine Eltern / haben* / keine Zeit, / uns / zu besuchen**", ".", "b1z", "F"],
+ ["ich / stehe* / früh / auf**, / um~ / das Frühstück / zu machen**", ".", "b1z", "F"],
+
+ // ---------- B1 · Passiv ----------
+ ["das Zimmer / wird* / jeden Tag / geputzt**", ".", "b1p", "U"],
+ ["die Gäste / werden* / am Flughafen / abgeholt**", ".", "b1p", "U"],
+ ["in Bolivien / wird* / viel Quinoa / gegessen**", ".", "b1p", "E"],
+ ["das Essen / wird* / in zehn Minuten / serviert**", ".", "b1p", "E"],
+ ["die Tickets / werden* / online / verkauft**", ".", "b1p", "R"],
+ ["der Flug / wird* / wegen des Wetters / abgesagt**", ".", "b1p", "R"],
+ ["die alte Kirche / wurde* / im 16. Jahrhundert / gebaut**", ".", "b1p", "K"],
+ ["in Sucre / wird* / oft / Musik / gespielt**", ".", "b1p", "K"],
+ ["die Briefe / werden* / jeden Morgen / sortiert**", ".", "b1p", "W"],
+ ["der neue Kollege / wird* / morgen / vorgestellt**", ".", "b1p", "W"],
+ ["das Haus / wird* / gerade / renoviert**", ".", "b1p", "F"],
+ ["hier / wird* / am Sonntag / nicht / gearbeitet**", ".", "b1p", "F"]
+];
 
 const GROUPS = [
  ["Rot","#d64541"],["Blau","#2d6cdf"],["Grün","#2f9e5b"],["Gelb","#e0a800"],["Lila","#8a4fd1"],
@@ -345,15 +488,17 @@ const GROUPS = [
  ["Oliv","#7a8b2a"],["Himmelblau","#4aa3df"],["Mint","#3cb89a"],["Weinrot","#8e2440"],["Marine","#3a4f8f"]
 ];
 const N_MIN = 3, N_MAX = 60, K_MAX = 15;
+const ROUND_OPTS = [3, 4, 5, 6, 8, 10, 0];        // 0 = ohne Limit
+const TIME_OPTS = [0, 30, 60, 90, 120, 180, 300];     // Sekunden, 0 = ohne Zeitlimit
 
 /* ================= Helpers ================= */
 function $(id){ return document.getElementById(id); }
 function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 const store = {
-  get(k, d){ try { const v = localStorage.getItem("msv2-"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
-  set(k, v){ try { localStorage.setItem("msv2-"+k, JSON.stringify(v)); } catch(e){} },
-  del(k){ try { localStorage.removeItem("msv2-"+k); } catch(e){} }
+  get(k, d){ try { const v = localStorage.getItem("msv3-"+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem("msv3-"+k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem("msv3-"+k); } catch(e){} }
 };
 function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function rngFor(seed, r){ return mulberry32(((seed * 2654435761) % 4294967296 + r * 40503 + 977) >>> 0); }
@@ -361,7 +506,6 @@ function shuffle(arr, rng){ const a = arr.slice(); for (let i=a.length-1;i>0;i--
 function toB64(str){ const b = new TextEncoder().encode(str); let s = ""; b.forEach(function(x){ s += String.fromCharCode(x); }); return btoa(s); }
 function fromB64(b64){ const s = atob(b64); const b = new Uint8Array(s.length); for (let i=0;i<s.length;i++) b[i] = s.charCodeAt(i); return new TextDecoder().decode(b); }
 
-/* Parse "morgen / gehe* / ich / ins Kino" into chunks of words with roles */
 function parseSentence(str){
   return str.split("/").map(function(raw){
     let t = raw.trim(), comma = "";
@@ -376,12 +520,11 @@ function parseSentence(str){
     return { words: words, role: role };
   }).filter(function(c){ return c.words.length; });
 }
-function prepItem(pair){
-  const chunks = parseSentence(pair[0]);
+function prepItem(entry){
+  const chunks = parseSentence(entry[0]);
   const max = chunks.reduce(function(s,c){ return s + c.words.length; }, 0);
-  return { chunks: chunks, p: pair[1] || ".", min: chunks.length, max: max };
+  return { chunks: chunks, p: entry[1] || ".", min: chunks.length, max: max };
 }
-/* Split chunks until the sentence has exactly `size` parts */
 function makePieces(item, size, rng){
   let list = item.chunks.map(function(c){ return { words: c.words.slice(), role: c.role }; });
   while (list.length < size){
@@ -401,20 +544,29 @@ function sizesFor(n, k){
   return out;
 }
 
-/* ================= Session & rounds ================= */
-// session: {level, n, k, hints, seed, custom?:{items:[[s,p]]}}
-function poolOf(session){
-  let raw;
-  if (session.level === CUSTOM) raw = session.custom.items;
-  else if (session.level === MIX) raw = [].concat.apply([], LEVELS.map(function(l){ return l.items; }));
-  else raw = LEVELS[session.level].items;
-  const tp = session.level === CUSTOM ? "" : TOPICS[session.topic || 0][0];
-  if (tp) raw = raw.filter(function(x){ return x[2] === tp; });
-  return raw.map(prepItem);
+/* ================= Filters & pool ================= */
+// session: {niv, gram, topic, n, k, hints, seed, custom?:{items}}
+function gramAllowed(niv, gi){
+  if (gi === 0) return true;
+  const g = GRAMMAR[gi];
+  return niv === NIV_BOTH || g.niv === NIVEAUS[niv];
 }
+function rawPool(sel){
+  if (sel.niv === NIV_CUSTOM) return sel.custom ? sel.custom.items : [];
+  const tp = TOPICS[sel.topic || 0][0];
+  const gid = GRAMMAR[sel.gram || 0].id;
+  return BANK.filter(function(x){
+    const g = GRAMMAR.find(function(gg){ return gg.id === x[2]; });
+    if (sel.niv !== NIV_BOTH && g.niv !== NIVEAUS[sel.niv]) return false;
+    if (gid && x[2] !== gid) return false;
+    if (tp && x[3] !== tp) return false;
+    return true;
+  });
+}
+function poolOf(sel){ return rawPool(sel).map(prepItem); }
 function checkSession(session){
   const pool = poolOf(session);
-  if (!pool.length) return session.level === CUSTOM ? "Bitte mindestens einen Satz schreiben." : "Für diese Auswahl gibt es keine Sätze.";
+  if (!pool.length) return session.niv === NIV_CUSTOM ? "Bitte mindestens einen Satz schreiben." : "Für diese Auswahl gibt es keine Sätze.";
   const sizes = sizesFor(session.n, session.k);
   const missing = [];
   sizes.forEach(function(s){
@@ -424,9 +576,20 @@ function checkSession(session){
   const lo = Math.min.apply(null, pool.map(function(i){ return i.min; }));
   const hi = Math.max.apply(null, pool.map(function(i){ return i.max; }));
   return "Für eine Gruppe mit " + missing.join(" oder ") + " Personen gibt es keinen passenden Satz. " +
-         "Mit dieser Auswahl passen Gruppen mit " + lo + " bis " + hi + " Personen. Ändere die Anzahl der Gruppen oder wähle mehr Sätze (z. B. „Alle Strukturen“).";
+         "Mit dieser Auswahl passen Gruppen mit " + lo + " bis " + hi + " Personen. " +
+         "Ändere die Anzahl der Gruppen oder wähle mehr Sätze (z. B. „Alle Strukturen“ oder „Alle Themen“).";
 }
+function describe(s){
+  if (s.niv === NIV_CUSTOM) return "Eigene Sätze";
+  const parts = [NIVEAUS[s.niv]];
+  if (s.gram) parts.push(GRAMMAR[s.gram].name);
+  if (s.topic) parts.push(TOPICS[s.topic][1]);
+  return parts.join(" · ");
+}
+
+/* ================= Rounds ================= */
 const roundCache = {};
+function sessionKey(s){ return [s.niv, s.gram||0, s.topic||0, s.n, s.k, s.hints?1:0, s.seed, s.custom ? JSON.stringify(s.custom.items) : ""].join("|"); }
 function computeRound(session, R){
   const ck = sessionKey(session) + "#" + R;
   if (roundCache[ck]) return roundCache[ck];
@@ -453,24 +616,25 @@ function computeRound(session, R){
       const item = pool[pick];
       const pieces = makePieces(item, s, rng);
       const members = students.slice(idx, idx + s); idx += s;
-      const order = shuffle(members, rng);          // order[j] holds piece j
+      const order = shuffle(members, rng);
       groups.push({ gi: gi, item: item, pieces: pieces, holders: order, members: members.slice().sort(function(a,b){return a-b;}) });
     });
   }
   roundCache[ck] = groups;
   return groups;
 }
-function sessionKey(s){ return [s.level, s.topic||0, s.n, s.k, s.hints?1:0, s.seed, s.custom ? JSON.stringify(s.custom.items) : ""].join("|"); }
 
 /* ================= Codes ================= */
 const ALPHA = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 function encodeShort(s){
-  let v = s.seed % 131072;        // 17 bits
-  v = v * 64 + s.n;               // 6 bits
-  v = v * 16 + s.k;               // 4 bits
-  v = v * 8 + s.level;            // 3 bits
-  v = v * 8 + (s.topic || 0);     // 3 bits
-  v = v * 2 + (s.hints ? 1 : 0);  // 1 bit
+  let v = s.seed % 2048;           // 11 bits
+  v = v * 16 + (s.rounds || 0);    // 4
+  v = v * 64 + s.n;                // 6
+  v = v * 16 + s.k;                // 4
+  v = v * 4 + s.niv;               // 2
+  v = v * 16 + (s.gram || 0);      // 4
+  v = v * 8 + (s.topic || 0);      // 3
+  v = v * 2 + (s.hints ? 1 : 0);   // 1   → 35 bits
   let out = "";
   for (let i=0;i<7;i++){ out = ALPHA[v % 32] + out; v = Math.floor(v/32); }
   let sum = 0; for (let i=0;i<7;i++) sum += ALPHA.indexOf(out[i]) * (i+3);
@@ -478,7 +642,7 @@ function encodeShort(s){
   return out.slice(0,4) + "-" + out.slice(4);
 }
 function decodeShort(code){
-  const c = code.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/O/g,"0").replace(/I/g,"1");
+  const c = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (c.length !== 8) return null;
   for (let i=0;i<8;i++) if (ALPHA.indexOf(c[i]) === -1) return null;
   let sum = 0; for (let i=0;i<7;i++) sum += ALPHA.indexOf(c[i]) * (i+3);
@@ -486,19 +650,22 @@ function decodeShort(code){
   let v = 0; for (let i=0;i<7;i++) v = v*32 + ALPHA.indexOf(c[i]);
   const hints = v % 2 === 1; v = Math.floor(v/2);
   const topic = v % 8; v = Math.floor(v/8);
-  const level = v % 8; v = Math.floor(v/8);
+  const gram = v % 16; v = Math.floor(v/16);
+  const niv = v % 4; v = Math.floor(v/4);
   const k = v % 16; v = Math.floor(v/16);
   const n = v % 64; v = Math.floor(v/64);
+  const rounds = v % 16; v = Math.floor(v/16);
   const seed = v;
-  if (level > MIX || topic >= TOPICS.length || k < 1 || n < N_MIN || n > N_MAX || k > n) return null;
-  return { level: level, topic: topic, n: n, k: k, hints: hints, seed: seed };
+  if (niv > NIV_BOTH || gram >= GRAMMAR.length || !gramAllowed(niv, gram) || topic >= TOPICS.length ||
+      k < 1 || n < N_MIN || n > N_MAX || k > n) return null;
+  return { niv: niv, gram: gram, topic: topic, n: n, k: k, hints: hints, seed: seed, rounds: rounds };
 }
 function encodeLong(s){
-  return "MS2:" + toB64(JSON.stringify({ i: s.custom.items, n: s.n, k: s.k, h: s.hints ? 1 : 0, s: s.seed }));
+  return "MS3:" + toB64(JSON.stringify({ i: s.custom.items, n: s.n, k: s.k, h: s.hints ? 1 : 0, s: s.seed, r: s.rounds || 0 }));
 }
 function decodeLong(code){
   const c = code.trim().replace(/\s+/g, "");
-  if (c.indexOf("MS2:") !== 0) return null;
+  if (c.indexOf("MS3:") !== 0) return null;
   try {
     const d = JSON.parse(fromB64(c.slice(4)));
     if (!d || !Array.isArray(d.i) || !d.i.length) return null;
@@ -506,10 +673,11 @@ function decodeLong(code){
       .slice(0,60).map(function(x){ return [x[0].slice(0,300), ".?!".indexOf(x[1]) !== -1 ? x[1] : "."]; });
     const n = +d.n, k = +d.k, seed = +d.s;
     if (!items.length || !(n >= N_MIN && n <= N_MAX) || !(k >= 1 && k <= K_MAX && k <= n) || !(seed >= 0)) return null;
-    return { level: CUSTOM, topic: 0, n: n, k: k, hints: !!d.h, seed: seed, custom: { items: items } };
+    const rounds = Math.max(0, Math.min(15, Math.floor(+d.r || 0)));
+    return { niv: NIV_CUSTOM, gram: 0, topic: 0, n: n, k: k, hints: !!d.h, seed: seed, rounds: rounds, custom: { items: items } };
   } catch(e){ return null; }
 }
-function codeOf(s){ return s.level === CUSTOM ? encodeLong(s) : encodeShort(s); }
+function codeOf(s){ return s.niv === NIV_CUSTOM ? encodeLong(s) : encodeShort(s); }
 function decodeAny(code){ return decodeLong(code) || decodeShort(code); }
 
 function parseCustomText(text){
@@ -542,19 +710,48 @@ function releaseWake(){ try { if (wake) { wake.release(); wake = null; } } catch
 document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible" && !$("sCard").classList.contains("hidden")) requestWake(); });
 
 /* ================= Teacher setup ================= */
-const setup = store.get("setup", { n: 10, k: 2, level: 0, topic: 0, hints: true, text: null });
-if (typeof setup.topic !== "number") setup.topic = 0;
-function autoK(n, level, topic){
+const setup = store.get("setup", { n: 10, k: 2, niv: 0, gram: 0, topic: 0, hints: true, text: null, rounds: 5, time: 120 });
+["niv","gram","topic"].forEach(function(f){ if (typeof setup[f] !== "number") setup[f] = 0; });
+if (ROUND_OPTS.indexOf(setup.rounds) === -1) setup.rounds = 5;
+if (TIME_OPTS.indexOf(setup.time) === -1) setup.time = 120;
+function fmtTime(sec){ sec = Math.max(0, Math.round(sec)); return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); }
+
+function selFromSetup(o){
+  o = o || {};
+  return { niv: o.niv != null ? o.niv : setup.niv, gram: o.gram != null ? o.gram : setup.gram,
+           topic: o.topic != null ? o.topic : setup.topic, n: o.n != null ? o.n : setup.n, k: o.k, seed: 0 };
+}
+function autoK(n, sel){
   const base = Math.max(1, Math.ceil(n/8));
-  if (level === CUSTOM) return base;
-  if (topic == null) topic = setup.topic;
+  if (sel.niv === NIV_CUSTOM) return base;
   const order = [];
   for (let d = 0; d <= K_MAX; d++){ order.push(base + d); if (d) order.push(base - d); }
   for (let i=0;i<order.length;i++){
     const k = order[i];
-    if (k >= 1 && k <= Math.min(K_MAX, n) && !checkSession({ level: level, topic: topic, n: n, k: k, seed: 0 })) return k;
+    if (k >= 1 && k <= Math.min(K_MAX, n)){
+      const s = Object.assign({}, sel, { n: n, k: k });
+      if (!checkSession(s)) return k;
+    }
   }
   return base;
+}
+function isAutoK(){ return setup.k === autoK(setup.n, selFromSetup()); }
+function changeSel(patch){
+  const wasAuto = isAutoK();
+  Object.assign(setup, patch);
+  if (!gramAllowed(setup.niv, setup.gram)) setup.gram = 0;
+  if (wasAuto) setup.k = Math.min(autoK(setup.n, selFromSetup()), setup.n, K_MAX);
+  saveSetup(); renderSetup();
+}
+function chipRow(boxId, labels, current, onPick, visible){
+  const box = $(boxId); box.textContent = "";
+  labels.forEach(function(name, i){
+    if (visible && !visible(i)) return;
+    const c = el("button", "chip", name);
+    c.setAttribute("aria-pressed", String(current === i));
+    c.addEventListener("click", function(){ onPick(i); });
+    box.appendChild(c);
+  });
 }
 function renderSetup(){
   $("nOut").textContent = setup.n;
@@ -563,34 +760,21 @@ function renderSetup(){
   const uniq = sizes.filter(function(v,i,a){ return a.indexOf(v) === i; });
   $("sizesOut").textContent = setup.k === 1 ? "Eine Gruppe mit " + setup.n + " Personen."
     : "Gruppen mit " + uniq.sort(function(a,b){return b-a;}).join(" oder ") + " Personen.";
-  const chips = $("levelChips"); chips.textContent = "";
-  LEVEL_NAMES.forEach(function(name, i){
-    const c = el("button", "chip", name);
-    c.setAttribute("aria-pressed", String(setup.level === i));
-    c.addEventListener("click", function(){
-      const wasAuto = setup.k === autoK(setup.n, setup.level);
-      setup.level = i;
-      if (wasAuto) setup.k = Math.min(autoK(setup.n, i), setup.n, K_MAX);
-      saveSetup(); renderSetup();
-    });
-    chips.appendChild(c);
-  });
-  const tchips = $("topicChips"); tchips.textContent = "";
-  TOPICS.forEach(function(t, i){
-    const c = el("button", "chip", t[1]);
-    c.setAttribute("aria-pressed", String(setup.topic === i));
-    c.addEventListener("click", function(){
-      const wasAuto = setup.k === autoK(setup.n, setup.level, setup.topic);
-      setup.topic = i;
-      if (wasAuto) setup.k = Math.min(autoK(setup.n, setup.level, i), setup.n, K_MAX);
-      saveSetup(); renderSetup();
-    });
-    tchips.appendChild(c);
-  });
-  $("topicBox").classList.toggle("hidden", setup.level === CUSTOM);
-  $("customBox").classList.toggle("hidden", setup.level !== CUSTOM);
-  if (setup.level !== CUSTOM){
-    const cnt = poolOf({ level: setup.level, topic: setup.topic }).length;
+
+  chipRow("roundChips", ROUND_OPTS.map(function(r){ return r ? r + " Runden" : "Ohne Limit"; }), ROUND_OPTS.indexOf(setup.rounds),
+          function(i){ setup.rounds = ROUND_OPTS[i]; saveSetup(); renderSetup(); });
+  chipRow("timeChips", TIME_OPTS.map(function(t){ return !t ? "Ohne Uhr" : t < 60 ? t + " Sek" : (t % 60 ? fmtTime(t) + " Min" : (t/60) + " Min"); }), TIME_OPTS.indexOf(setup.time),
+          function(i){ setup.time = TIME_OPTS[i]; saveSetup(); renderSetup(); });
+  chipRow("nivChips", NIVEAUS, setup.niv, function(i){ changeSel({ niv: i }); });
+  chipRow("topicChips", TOPICS.map(function(t){ return t[1]; }), setup.topic, function(i){ changeSel({ topic: i }); });
+  chipRow("gramChips", GRAMMAR.map(function(g){ return g.name; }), setup.gram, function(i){ changeSel({ gram: i }); },
+          function(i){ return gramAllowed(setup.niv, i); });
+
+  const custom = setup.niv === NIV_CUSTOM;
+  $("bankBox").classList.toggle("hidden", custom);
+  $("customBox").classList.toggle("hidden", !custom);
+  if (!custom){
+    const cnt = poolOf(selFromSetup()).length;
     $("poolCount").textContent = cnt === 1 ? "1 Satz passt zu dieser Auswahl." : cnt + " Sätze passen zu dieser Auswahl.";
   } else $("poolCount").textContent = "";
   $("hintSwitch").setAttribute("aria-checked", String(setup.hints));
@@ -599,9 +783,9 @@ function renderSetup(){
 function saveSetup(){ setup.text = $("customText").value; store.set("setup", setup); }
 function setN(n){
   n = Math.min(N_MAX, Math.max(N_MIN, n));
-  const wasAuto = setup.k === autoK(setup.n, setup.level);
+  const wasAuto = isAutoK();
   setup.n = n;
-  if (wasAuto) setup.k = autoK(n, setup.level);
+  if (wasAuto) setup.k = autoK(n, selFromSetup());
   setup.k = Math.min(setup.k, n, K_MAX);
   saveSetup(); renderSetup();
 }
@@ -613,9 +797,10 @@ $("hintSwitch").addEventListener("click", function(){ setup.hints = !setup.hints
 $("customText").addEventListener("input", function(){ saveSetup(); $("setupErr").textContent = ""; });
 
 $("startSession").addEventListener("click", function(){
-  const s = { level: setup.level, topic: setup.level === CUSTOM ? 0 : setup.topic, n: setup.n, k: setup.k, hints: setup.hints,
-              seed: Math.floor(Math.random() * 131072) };
-  if (s.level === CUSTOM){
+  const custom = setup.niv === NIV_CUSTOM;
+  const s = { niv: setup.niv, gram: custom ? 0 : setup.gram, topic: custom ? 0 : setup.topic,
+              n: setup.n, k: setup.k, hints: setup.hints, rounds: setup.rounds, seed: Math.floor(Math.random() * 2048) };
+  if (custom){
     const r = parseCustomText($("customText").value);
     if (r.errors.length){ $("setupErr").textContent = r.errors.join(" "); return; }
     if (!r.items.length){ $("setupErr").textContent = "Bitte mindestens einen Satz schreiben."; return; }
@@ -623,34 +808,40 @@ $("startSession").addEventListener("click", function(){
   }
   const problem = checkSession(s);
   if (problem){ $("setupErr").textContent = problem; return; }
-  store.set("tSession", { s: s, round: 1 });
+  store.set("tSession", { s: s, round: 1, time: setup.time });
   openTeacherSession();
 });
 
 /* ================= Teacher session ================= */
 let tState = null;
 let openGroups = {};
+let endArmed = null;
+function resetEndBtn(){ clearTimeout(endArmed); endArmed = null; $("endSession").textContent = "‹ Neue Sitzung"; $("endSession").style.color = ""; }
 function openTeacherSession(){
   if (endArmed) resetEndBtn();
   tState = store.get("tSession", null);
   if (!tState) { renderSetup(); show("tSetup"); return; }
   openGroups = {};
+  if (tState.time == null) tState.time = 0;
   const s = tState.s;
-  const code = codeOf(s);
-  const long = s.level === CUSTOM;
-  $("codeShow").textContent = code;
+  const long = s.niv === NIV_CUSTOM;
+  $("codeShow").textContent = codeOf(s);
   $("codeShow").classList.toggle("long", long);
   $("codeHint").textContent = long
     ? "Eigene Sätze: Code per WhatsApp schicken. Nummern 1 bis " + s.n + "."
     : "Nummern 1 bis " + s.n + " eingeben";
-  $("sessInfo").textContent = LEVEL_NAMES[s.level] + (s.topic ? " · " + TOPICS[s.topic][1] : "") + " · " + s.n + " Personen";
+  $("sessInfo").textContent = describe(s) + " · " + s.n + " Personen";
+  timerReset();
   renderTeacherRound();
   show("tSession");
 }
 function renderTeacherRound(){
   const s = tState.s, R = tState.round;
-  $("tRound").textContent = "Runde " + R;
+  const maxR = s.rounds || 0;
+  $("tRound").textContent = maxR ? "Runde " + R + " von " + maxR : "Runde " + R;
+  $("lastNote").classList.toggle("hidden", !(maxR && R >= maxR));
   $("tPrev").disabled = R <= 1;
+  $("tNext").disabled = !!maxR && R >= maxR;
   const groups = computeRound(s, R);
   const box = $("groups"); box.textContent = "";
   groups.forEach(function(g){
@@ -681,11 +872,63 @@ function renderTeacherRound(){
   $("toggleAll").textContent = allOpen ? "Alle Lösungen verbergen" : "Alle Lösungen zeigen";
 }
 function setTeacherRound(r){
-  tState.round = Math.max(1, Math.min(99, r));
+  const maxR = tState.s.rounds || 99;
+  tState.round = Math.max(1, Math.min(maxR, r));
   openGroups = {};
   store.set("tSession", tState);
+  timerReset();
   renderTeacherRound();
 }
+
+/* ----- Timer (only on the teacher's screen) ----- */
+const timer = { running:false, startAt:0, acc:0, raf:null, beeped:false };
+function elapsedMs(){ return timer.acc + (timer.running ? Date.now() - timer.startAt : 0); }
+function limitSec(){ return (tState && tState.time) || 0; }
+function renderTimer(){
+  const lim = limitSec(), el_ = elapsedMs() / 1000;
+  const box = $("timerBox");
+  box.classList.remove("warn","over");
+  if (lim){
+    const left = lim - el_;
+    $("tVal").textContent = fmtTime(Math.ceil(Math.max(0, left)));
+    if (left <= 0){ box.classList.add("over"); $("tLabel").textContent = "Zeit ist um!"; }
+    else if (left <= 15) box.classList.add("warn");
+    if (left <= 0 && !timer.beeped){ timer.beeped = true; beep(); timerPause(); }
+  } else {
+    $("tVal").textContent = fmtTime(Math.floor(el_));
+  }
+  if (!(lim && el_ >= lim)){
+    $("tLabel").textContent = timer.running ? (lim ? "Die Zeit läuft …" : "Stoppuhr läuft …")
+      : (el_ > 0 ? "Pausiert" : "Start drücken, wenn alle ihr Wort haben.");
+  }
+  $("tStart").textContent = timer.running ? "Pause" : (el_ > 0 && !(lim && el_ >= lim) ? "Weiter" : "Start");
+  $("tStart").disabled = !!(lim && el_ >= lim);
+}
+function tick(){ renderTimer(); if (timer.running) timer.raf = requestAnimationFrame(tick); }
+function timerStart(){ if (timer.running) return; timer.running = true; timer.startAt = Date.now(); unlockAudio(); tick(); }
+function timerPause(){ if (!timer.running) return; timer.acc += Date.now() - timer.startAt; timer.running = false; cancelAnimationFrame(timer.raf); renderTimer(); }
+function timerReset(){ timer.running = false; timer.acc = 0; timer.beeped = false; cancelAnimationFrame(timer.raf); renderTimer(); }
+$("tStart").addEventListener("click", function(){ if (timer.running) timerPause(); else timerStart(); });
+$("tReset").addEventListener("click", timerReset);
+
+let audioCtx = null;
+function unlockAudio(){ try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); } catch(e){} }
+function beep(){
+  try {
+    unlockAudio(); if (!audioCtx) return;
+    [0, 0.35, 0.7].forEach(function(t, i){
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = i === 2 ? 660 : 880;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.4, audioCtx.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.3);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.32);
+    });
+  } catch(e){}
+  try { if (navigator.vibrate) navigator.vibrate([200,100,200]); } catch(e){}
+}
+
 $("tPrev").addEventListener("click", function(){ setTeacherRound(tState.round - 1); });
 $("tNext").addEventListener("click", function(){ setTeacherRound(tState.round + 1); });
 $("toggleAll").addEventListener("click", function(){
@@ -694,8 +937,6 @@ $("toggleAll").addEventListener("click", function(){
   groups.forEach(function(g){ openGroups[g.gi] = !allOpen; });
   renderTeacherRound();
 });
-let endArmed = null;
-function resetEndBtn(){ clearTimeout(endArmed); endArmed = null; $("endSession").textContent = "‹ Neue Sitzung"; $("endSession").style.color = ""; }
 $("endSession").addEventListener("click", function(){
   if (!endArmed){
     $("endSession").textContent = "Wirklich beenden? Nochmal tippen";
@@ -704,6 +945,7 @@ $("endSession").addEventListener("click", function(){
     return;
   }
   resetEndBtn();
+  timerReset();
   store.del("tSession"); tState = null; renderSetup(); show("tSetup");
 });
 $("copyCode").addEventListener("click", function(){
@@ -719,7 +961,7 @@ $("copyCode").addEventListener("click", function(){
 });
 
 /* ================= Student ================= */
-let sState = null;  // {code, num, round, s}
+let sState = null;
 $("joinBtn").addEventListener("click", function(){
   const code = $("joinCode").value;
   const num = parseInt($("joinNum").value, 10);
@@ -729,7 +971,8 @@ $("joinBtn").addEventListener("click", function(){
   if (checkSession(s)){ $("joinErr").textContent = "Dieser Code funktioniert nicht. Frag die Lehrperson."; return; }
   $("joinErr").textContent = "";
   const prev = store.get("sState", null);
-  const round = prev && prev.code === code.trim() && prev.num === num ? prev.round : 1;
+  let round = prev && prev.code === code.trim() && prev.num === num ? prev.round : 1;
+  if (s.rounds && round > s.rounds) round = s.rounds;
   sState = { code: code.trim(), num: num, round: round, s: s };
   store.set("sState", { code: sState.code, num: num, round: round });
   renderCard(false);
@@ -758,25 +1001,26 @@ function renderCard(animate){
   $("gSize").textContent = g.pieces.length + " Personen";
   $("cardNum").textContent = "Nr. " + sState.num;
   const wt = $("wordText"); wt.textContent = ""; wt.className = "word";
-  const inner = el("span", s.hints ? piece.role : "", piece.text);
-  wt.appendChild(inner);
+  wt.appendChild(el("span", s.hints ? piece.role : "", piece.text));
   fitWord(wt, piece.text);
   const foot = $("cardFoot"); foot.textContent = "";
   if (s.hints){
     if (piece.role !== "n"){
-      const tag = el("div", "role-tag " + piece.role, piece.role === "v1" ? "Verb" : piece.role === "v2" ? "Verbteil am Ende" : "Konjunktion");
-      foot.appendChild(tag);
+      foot.appendChild(el("div", "role-tag " + piece.role,
+        piece.role === "v1" ? "Verb" : piece.role === "v2" ? "Verbteil am Ende" : "Verbindungswort"));
     }
     foot.appendChild(el("div", null, g.item.p === "?" ? "Euer Satz ist eine Frage (?)" : g.item.p === "!" ? "Euer Satz endet mit !" : "Euer Satz endet mit einem Punkt (.)"));
   } else {
     foot.appendChild(el("div", null, "Findet eure Gruppe und bildet den Satz!"));
   }
-  $("sRound").textContent = "Runde " + R;
+  const maxR = s.rounds || 0;
+  $("sRound").textContent = maxR ? "Runde " + R + " von " + maxR : "Runde " + R;
   $("sPrev").disabled = R <= 1;
+  $("sNext").disabled = !!maxR && R >= maxR;
   if (animate){ card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop"); }
 }
 function setStudentRound(r){
-  sState.round = Math.max(1, Math.min(99, r));
+  sState.round = Math.max(1, Math.min(sState.s.rounds || 99, r));
   store.set("sState", { code: sState.code, num: sState.num, round: sState.round });
   renderCard(true);
 }
@@ -799,7 +1043,6 @@ $("goStudent").addEventListener("click", function(){
 
 if (setup.text) $("customText").value = setup.text;
 show("home");
-
 })();
 </script>
 </body>
